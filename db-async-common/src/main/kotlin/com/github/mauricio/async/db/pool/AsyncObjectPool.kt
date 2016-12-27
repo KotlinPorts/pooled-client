@@ -16,8 +16,6 @@
 
 package com.github.mauricio.async.db.pool
 
-import scala.concurrent.{ExecutionContext, Future, Promise}
-
 /**
  *
  * Defines the common interface for async object pools. These are pools that do not block clients trying to acquire
@@ -27,7 +25,7 @@ import scala.concurrent.{ExecutionContext, Future, Promise}
  * @tparam T
  */
 
-interface AsyncObjectPool[T] {
+interface AsyncObjectPool<T> {
 
   /**
    *
@@ -38,7 +36,7 @@ interface AsyncObjectPool[T] {
    * @return future that will eventually return a usable pool object.
    */
 
-  fun take: Future[T]
+  suspend fun take(): T
 
   /**
    *
@@ -50,7 +48,7 @@ interface AsyncObjectPool[T] {
    * @return
    */
 
-  fun giveBack( item : T ) : Future[AsyncObjectPool[T]]
+  suspend fun giveBack(): T
 
   /**
    *
@@ -60,7 +58,7 @@ interface AsyncObjectPool[T] {
    * @return
    */
 
-  fun close : Future[AsyncObjectPool[T]]
+  suspend fun close(): AsyncObjectPool<T>
 
   /**
    *
@@ -69,27 +67,7 @@ interface AsyncObjectPool[T] {
    * @param f function that uses the object
    * @return f wrapped with take and giveBack
    */
-
-  fun use[A](f: (T) => Future[A])(implicit executionContext: ExecutionContext): Future[A] =
-    take.flatMap { item =>
-      val p = Promise[A]()
-      try {
-        f(item).onComplete { r =>
-          giveBack(item).onComplete { _ =>
-            p.complete(r)
-          }
-        }
-      } catch {
-        // calling f might throw exception.
-        // in that case the item will be removed from the pool if identified as invalid by the factory.
-        // the error returned to the user is the original error thrown by f.
-        case error: Throwable =>
-          giveBack(item).onComplete { _ =>
-            p.failure(error)
-          }
-      }
-
-      p.future
-    }
+  //sorry, use isnt needed in Kotlin
+//  suspend use<A>(suspend f: (T) -> A):  =
 
 }

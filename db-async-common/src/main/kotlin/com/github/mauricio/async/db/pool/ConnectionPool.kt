@@ -17,8 +17,9 @@
 package com.github.mauricio.async.db.pool
 
 import com.github.mauricio.async.db.util.ExecutorServiceUtils
-import com.github.mauricio.async.db.{QueryResult, Connection}
-import scala.concurrent.{ExecutionContext, Future}
+import com.github.mauricio.async.db.QueryResult
+import com.github.mauricio.async.db.Connection
+import kotlin.coroutines.suspendCoroutine
 
 /**
  *
@@ -36,76 +37,78 @@ import scala.concurrent.{ExecutionContext, Future}
  * @param configuration
  */
 
-class ConnectionPool[T <: Connection](
-                      factory: ObjectFactory[T],
-                      configuration: PoolConfiguration,
-                      executionContext: ExecutionContext = ExecutorServiceUtils.CachedExecutionContext
-                      )
-  :  SingleThreadedAsyncObjectPool[T](factory, configuration)
-  with Connection {
+class ConnectionPool<T : Connection>(
+        factory: ObjectFactory<T>,
+        configuration: PoolConfiguration
+)
+    : SingleThreadedAsyncObjectPool<T>(factory, configuration), Connection {
 
-  /**
-   *
-   * Closes the pool, you should discard the object.
-   *
-   * @return
-   */
+    /**
+     *
+     * Closes the pool, you should discard the object.
+     *
+     * @return
+     */
 
-  fun disconnect: Future[Connection] = if ( this.isConnected ) {
-    this.close.map(item => this)(executionContext)
-  } else {
-    Future.successful(this)
-  }
+    suspend fun disconnect() = suspendCoroutine {
+        cont ->
+        if (this.isConnected) {
+            this.close.map(item => this)(executionContext)
+        } else {
+            Future.successful(this)
+        }
+    }
 
-  /**
-   *
-   * Always returns an empty map.
-   *
-   * @return
-   */
+    /**
+     *
+     * Always returns an empty map.
+     *
+     * @return
+     */
 
-  fun connect: Future[Connection] = Future.successful(this)
+    fun connect: Future[Connection] = Future.successful(this)
 
-  fun isConnected: Boolean = !this.isClosed
+    fun isConnected: Boolean = !this.isClosed
 
-  /**
-   *
-   * Picks one connection and runs this query against it. The query should be stateless, it should not
-   * start transactions and should not leave anything to be cleaned up in the future. The behavior of this
-   * object is undefined if you start a transaction from this method.
-   *
-   * @param query
-   * @return
-   */
+    /**
+     *
+     * Picks one connection and runs this query against it. The query should be stateless, it should not
+     * start transactions and should not leave anything to be cleaned up in the future. The behavior of this
+     * object is undefined if you start a transaction from this method.
+     *
+     * @param query
+     * @return
+     */
 
-  fun sendQuery(query: String): Future[QueryResult] =
+    fun sendQuery(query: String): Future[QueryResult] =
     this.use(_.sendQuery(query))(executionContext)
 
-  /**
-   *
-   * Picks one connection and runs this query against it. The query should be stateless, it should not
-   * start transactions and should not leave anything to be cleaned up in the future. The behavior of this
-   * object is undefined if you start a transaction from this method.
-   *
-   * @param query
-   * @param values
-   * @return
-   */
+    /**
+     *
+     * Picks one connection and runs this query against it. The query should be stateless, it should not
+     * start transactions and should not leave anything to be cleaned up in the future. The behavior of this
+     * object is undefined if you start a transaction from this method.
+     *
+     * @param query
+     * @param values
+     * @return
+     */
 
-  fun sendPreparedStatement(query: String, values: Seq[Any] = List()): Future[QueryResult] =
+    fun sendPreparedStatement(query: String, values: Seq[Any] = List()): Future[QueryResult] =
     this.use(_.sendPreparedStatement(query, values))(executionContext)
 
-  /**
-   *
-   * Picks one connection and executes an (asynchronous) function on it within a transaction block.
-   * If the function completes successfully, the transaction is committed, otherwise it is aborted.
-   * Either way, the connection is returned to the pool on completion.
-   *
-   * @param f operation to execute on a connection
-   * @return result of f, conditional on transaction operations succeeding
-   */
+    /**
+     *
+     * Picks one connection and executes an (asynchronous) function on it within a transaction block.
+     * If the function completes successfully, the transaction is committed, otherwise it is aborted.
+     * Either way, the connection is returned to the pool on completion.
+     *
+     * @param f operation to execute on a connection
+     * @return result of f, conditional on transaction operations succeeding
+     */
 
-  override fun inTransaction[A](f : Connection => Future[A])(implicit context : ExecutionContext = executionContext) : Future[A] =
+    override fun inTransaction[A](f : Connection => Future[A])(implicit context : ExecutionContext = executionContext) : Future[A] =
     this.use(_.inTransaction[A](f)(context))(executionContext)
+}
 
 }

@@ -16,20 +16,11 @@
 
 package com.github.mauricio.async.db.pool
 
-import java.util.concurrent.RejectedExecutionException
-
-import com.github.mauricio.async.db.util.{Log, Worker}
+import com.github.mauricio.async.db.util.Worker
+import mu.KLogging
 import java.util.concurrent.atomic.AtomicLong
-import java.util.{Timer, TimerTask}
-
-import scala.collection.mutable.{ArrayBuffer, Queue}
-import scala.concurrent.{Future, Promise}
-import scala.util.{Failure, Success}
-
-object SingleThreadedAsyncObjectPool {
-  val Counter = new AtomicLong()
-  val log = Log.get[SingleThreadedAsyncObjectPool[Nothing]]
-}
+import java.util.Timer
+import java.util.TimerTask
 
 /**
  *
@@ -44,12 +35,13 @@ object SingleThreadedAsyncObjectPool {
  * @tparam T type of the object this pool holds
  */
 
-class SingleThreadedAsyncObjectPool[T](
-                                        factory: ObjectFactory[T],
+open class SingleThreadedAsyncObjectPool<T>(
+                                        factory: ObjectFactory<T>,
                                         configuration: PoolConfiguration
-                                        ) :  AsyncObjectPool[T] {
-
-  import SingleThreadedAsyncObjectPool.{Counter, log}
+                                        ) :  AsyncObjectPool<T> {
+  companion object: KLogging() {
+    val Counter = AtomicLong()
+  }
 
   private val mainPool = Worker()
   private var poolables = List.empty[PoolableHolder[T]]

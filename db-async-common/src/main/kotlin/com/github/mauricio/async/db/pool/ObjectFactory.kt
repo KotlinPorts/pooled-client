@@ -16,7 +16,7 @@
 
 package com.github.mauricio.async.db.pool
 
-import scala.util.Try
+import org.funktionale.either.Either
 
 /**
  *
@@ -26,7 +26,7 @@ import scala.util.Try
  * @tparam T the kind of object this factory produces.
  */
 
-interface ObjectFactory[T] {
+interface ObjectFactory<T> {
 
   /**
    *
@@ -36,7 +36,7 @@ interface ObjectFactory[T] {
    * @return
    */
 
-  fun create : T
+  fun create() : T
 
   /**
    *
@@ -65,7 +65,7 @@ interface ObjectFactory[T] {
    * @return
    */
 
-  fun validate( item : T ) : Try[T]
+  fun validate( item : T ) : Either<T, Throwable>
 
   /**
    *
@@ -80,7 +80,7 @@ interface ObjectFactory[T] {
    * @return
    */
 
-  fun test( item : T ) : Try[T] = validate(item)
+  fun test( item : T ) : Either<T, Throwable> = validate(item)
 
 
 }

@@ -22,7 +22,7 @@ package com.github.mauricio.async.db
  *
  */
 
-interface RowData :  IndexedSeq[Any] {
+interface RowData {
 
   /**
    *
@@ -32,7 +32,7 @@ interface RowData :  IndexedSeq[Any] {
    * @return
    */
 
-  fun apply( columnNumber : Int ) : Any
+  operator fun get( columnNumber : Int ) : Any?
 
   /**
    *
@@ -42,7 +42,7 @@ interface RowData :  IndexedSeq[Any] {
    * @return
    */
 
-  fun apply( columnName : String ) : Any
+  operator fun get( columnNumber : String ) : Any?
 
   /**
    *
@@ -51,6 +51,8 @@ interface RowData :  IndexedSeq[Any] {
    * @return
    */
 
-  fun rowNumber : Int
+  val rowNumber : Int
+
+  operator fun iterator(): Iterator<Any?>
 
 }

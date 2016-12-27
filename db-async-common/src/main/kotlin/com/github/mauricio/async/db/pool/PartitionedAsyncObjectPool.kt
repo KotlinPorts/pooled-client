@@ -7,11 +7,11 @@ import java.util.concurrent.ConcurrentHashMap
 import scala.util.Success
 import scala.util.Failure
 
-class PartitionedAsyncObjectPool[T](
-    factory: ObjectFactory[T],
+class PartitionedAsyncObjectPool<T>(
+    factory: ObjectFactory<T>,
     configuration: PoolConfiguration,
     numberOfPartitions: Int)
-    :  AsyncObjectPool[T] {
+    :  AsyncObjectPool<T> {
 
     import ExecutorServiceUtils.CachedExecutionContext
 

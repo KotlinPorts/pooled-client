@@ -18,34 +18,36 @@ package com.github.mauricio.async.db.general
 
 import com.github.mauricio.async.db.RowData
 
-class ArrayRowData(row : Int, val mapping : Map[String, Int], val columns : Array[Any]) :  RowData
-{
+class ArrayRowData(val row: Int, val mapping: Map<String, Int>, val columns: Array<Any>) : RowData {
+    override fun iterator(): Iterator<Any?> = columns.iterator()
 
-  /**
-   *
-   * Returns a column value by it's position in the originating query.
-   *
-   * @param columnNumber
-   * @return
-   */
-  fun apply(columnNumber: Int): Any = columns(columnNumber)
+    val size: Int
+        get() = columns.size
 
-  /**
-   *
-   * Returns a column value by it's name in the originating query.
-   *
-   * @param columnName
-   * @return
-   */
-  fun apply(columnName: String): Any = columns( mapping(columnName) )
+    /**
+     *
+     * Returns a column value by it's position in the originating query.
+     *
+     * @param columnNumber
+     * @return
+     */
+    override operator fun get(columnNumber: Int): Any? = columns[columnNumber]
 
-  /**
-   *
-   * Number of this row in the query results. Counts start at 0.
-   *
-   * @return
-   */
-  fun rowNumber: Int = row
+    /**
+     *
+     * Returns a column value by it's name in the originating query.
+     *
+     * @param columnName
+     * @return
+     */
+    override operator fun get(columnName: String): Any? = columns[mapping[columnName]!!]
 
-  fun length: Int = columns.length
+    /**
+     *
+     * Number of this row in the query results. Counts start at 0.
+     *
+     * @return
+     */
+    override val rowNumber: Int get() = row
+
 }

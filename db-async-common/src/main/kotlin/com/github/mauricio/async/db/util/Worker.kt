@@ -17,7 +17,6 @@
 package com.github.mauricio.async.db.util
 
 import java.util.concurrent.ExecutorService
-import scala.concurrent.{ExecutionContextExecutorService, ExecutionContext}
 
 object Worker {
   val log = Log.get[Worker]
