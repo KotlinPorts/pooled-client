@@ -22,3 +22,13 @@ class CustomController<T>(val current: Continuation<T>) : Continuation<T> {
         current.resumeWithException(exception)
     }
 }
+
+fun justDoIt(block: suspend () -> Unit): Unit {
+    block.startCoroutine(object: Continuation<Unit> {
+        override fun resumeWithException(exception: Throwable) {
+        }
+
+        override fun resume(value: Unit) {
+        }
+    })
+}

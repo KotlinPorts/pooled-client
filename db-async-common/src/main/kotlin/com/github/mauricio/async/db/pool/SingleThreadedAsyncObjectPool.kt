@@ -17,11 +17,15 @@
 package com.github.mauricio.async.db.pool
 
 import com.github.mauricio.async.db.util.Worker
+import com.github.mauricio.async.db.util.justDoIt
+import com.github.mauricio.async.db.util.suspendable
 import mu.KLogging
 import org.funktionale.either.Either
 import java.util.*
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.Continuation
+import kotlin.coroutines.startCoroutine
 import kotlin.coroutines.suspendCoroutine
 
 /**
@@ -61,6 +65,13 @@ open class SingleThreadedAsyncObjectPool<T>(
         }, configuration.validationInterval, configuration.validationInterval)
     }
 
+    private suspend fun <A> act(f: suspend SingleThreadedAsyncObjectPool<T>.() -> A) = suspendCoroutine<A> {
+        cont ->
+        mainPool.action {
+            f.startCoroutine(this@SingleThreadedAsyncObjectPool, cont)
+        }
+    }
+
     private var closed = false
 
     /**
@@ -70,13 +81,12 @@ open class SingleThreadedAsyncObjectPool<T>(
      * @return
      */
 
-    override suspend fun take(): T {
-
+    override suspend fun take(): T = suspendCoroutine {
+        cont ->
         if (this.closed) {
-            throw PoolAlreadyTerminatedException()
+            cont.resumeWithException(PoolAlreadyTerminatedException())
         }
-
-        return checkout()
+        checkout(cont)
     }
 
     /**
@@ -88,76 +98,58 @@ open class SingleThreadedAsyncObjectPool<T>(
      * @return
      */
 
-    override suspend fun giveBack(item: T): AsyncObjectPool[T]
+    override suspend fun giveBack(item: T) = act<AsyncObjectPool<T>>
     {
-        val promise = Promise[AsyncObjectPool[T]]()
-        this.mainPool.action {
-            // Ensure it came from this pool
-            val idx = this.checkouts.indexOf(item)
-            if (idx >= 0) {
-                this.checkouts.remove(idx)
-                this.factory.validate(item) match {
-                    case Success (item) => {
-                    this.addBack(item, promise)
-                }
-                    case Failure (e) => {
+        // Ensure it came from this pool
+        val idx = this.checkouts.indexOf(item)
+        if (idx >= 0) {
+            this.checkouts.removeAt(idx)
+            val test = this.factory.validate(item)
+            when (test) {
+                is Either.Left -> this.addBack(item)
+                is Either.Right -> {
                     this.factory.destroy(item)
-                    promise.failure(e)
+                    throw test.r
                 }
-                }
+            }
+        } else {
+            // It's already a failure but lets doublecheck why
+            val isFromOurPool = this.poolables.find({ item == it.item }) != null
+
+            if (isFromOurPool) {
+                throw IllegalStateException("This item has already been returned")
             } else {
-                // It's already a failure but lets doublecheck why
-                val isFromOurPool = (item match {
-                    case x : AnyRef => this.poolables.find(holder => x eq holder . item . asInstanceOf [ AnyRef])
-                    case _ => this.poolables.find(holder => item == holder . item)
-                }).isDefined
-
-                if (isFromOurPool) {
-                    promise.failure(new IllegalStateException ("This item has already been returned"))
-                } else {
-                    promise.failure(new IllegalArgumentException ("The returned item did not come from this pool."))
-                }
+                throw IllegalArgumentException("The returned item did not come from this pool.")
             }
         }
-
-        promise.future
     }
 
-    fun isFull: Boolean = this.poolables.isEmpty && this.checkouts.size == configuration.maxObjects
+    fun isFull(): Boolean = poolables.isEmpty() && checkouts.size == configuration.maxObjects
 
-    fun close: Future[AsyncObjectPool[T]] =
-    {
+    override suspend fun close() = suspendable<AsyncObjectPool<T>> {
         try {
-            val promise = Promise[AsyncObjectPool[T]]()
-            this.mainPool.action {
-                if (!this.closed) {
-                    try {
-                        this.timer.cancel()
-                        this.mainPool.shutdown
-                        this.closed = true
-                        (this.poolables.map(i => i . item)++ this.checkouts).foreach(item => factory.destroy(item))
-                        promise.success(this)
-                    } catch {
-                        case e : Exception => promise . failure (e)
-                    }
-                } else {
-                    promise.success(this)
+            act<Unit> {
+                if (!closed) {
+                    timer.cancel()
+                    mainPool.shutdown()
+                    this.closed = true
+                    (this.poolables.map({ it.item }) + this.checkouts)
+                            .forEach({ factory.destroy(it) })
                 }
             }
-            promise.future
-        } catch {
-            case e : RejectedExecutionException if this.closed =>
-            Future.successful(this)
+        } catch (e: RejectedExecutionException) {
+            return@suspendable this@SingleThreadedAsyncObjectPool
         }
+        this@SingleThreadedAsyncObjectPool
     }
 
-    fun availables: Traversable[T] = this.poolables.map(item => item.item)
+    fun availables(): Iterable<T> = this.poolables.map { it.item }
 
-    fun inUse: Traversable[T] = this.checkouts
+    fun inUse(): Iterable<T> = this.checkouts
 
-    fun queued: Traversable[Promise[T]] = this.waitQueue
+    fun queued(): Iterable<Continuation<T>> = this.waitQueue
 
-    fun isClosed: Boolean = this.closed
+    fun isClosed(): Boolean = this.closed
 
     /**
      *
@@ -167,15 +159,15 @@ open class SingleThreadedAsyncObjectPool<T>(
      * @param promise
      */
 
-    private suspend fun addBack(item: T): AsyncObjectPool[T]
+    private suspend fun addBack(item: T) = suspendable <AsyncObjectPool<T>>
     {
-        this.poolables :: = new PoolableHolder [ T](item)
+        poolables += PoolableHolder<T>(item)
 
-        if (this.waitQueue.nonEmpty) {
-            this.checkout(this.waitQueue.dequeue())
+        if (waitQueue.isNotEmpty()) {
+            checkout(waitQueue.poll())
         }
 
-        this
+        this@SingleThreadedAsyncObjectPool
     }
 
     /**
@@ -186,22 +178,22 @@ open class SingleThreadedAsyncObjectPool<T>(
      * @param promise
      */
 
-    private suspend fun enqueuePromise(): T {
+    private fun enqueuePromise(cont: Continuation<T>) {
         if (this.waitQueue.size >= configuration.maxQueueSize) {
-            val exception = new PoolExhaustedException ("There are no objects available and the waitQueue is full")
+            val exception = PoolExhaustedException("There are no objects available and the waitQueue is full")
             exception.fillInStackTrace()
-            promise.failure(exception)
+            cont.resumeWithException(exception)
         } else {
-            this.waitQueue += promise
+            this.waitQueue += cont
         }
     }
 
-    private suspend fun checkout(): T {
+    private fun checkout(cont: Continuation<T>) {
         this.mainPool.action {
             if (this.isFull()) {
-                this.enqueuePromise(promise)
+                this.enqueuePromise(cont)
             } else {
-                this.createOrReturnItem(promise)
+                this.createOrReturnItem(cont)
             }
         }
     }
@@ -214,27 +206,26 @@ open class SingleThreadedAsyncObjectPool<T>(
      * @param promise
      */
 
-    private fun createOrReturnItem(promise: Promise[T])
-    {
-        if (this.poolables.isEmpty) {
+    private fun createOrReturnItem(cont: Continuation<T>) {
+        if (poolables.isEmpty()) {
             try {
-                val item = this.factory.create
+                val item = factory.create()
                 this.checkouts += item
-                promise.success(item)
-            } catch {
-                case e : Exception => promise . failure (e)
+                cont.resume(item)
+            } catch (e: Throwable) {
+                cont.resumeWithException(e)
             }
         } else {
-            val h :: t = this.poolables
-            this.poolables = t
+            val h = poolables[0]
+            poolables = poolables.drop(1)
             val item = h.item
             this.checkouts += item
-            promise.success(item)
+            cont.resume(item)
         }
     }
 
-    override fun finalize() {
-        this.close
+    protected fun finalize() {
+        justDoIt { close() }
     }
 
     /**
@@ -253,12 +244,12 @@ open class SingleThreadedAsyncObjectPool<T>(
             when (test) {
                 is Either.Left ->
                     if (poolable.timeElapsed() > configuration.maxIdle) {
-                        logger.debug("Connection was idle for {}, maxIdle is {}, removing it", poolable.timeElapsed, configuration.maxIdle)
+                        logger.debug("Connection was idle for {}, maxIdle is {}, removing it", poolable.timeElapsed(), configuration.maxIdle)
                         removals += poolable
                         factory.destroy(poolable.item)
                     }
                 is Either.Right -> {
-                    logger.error("Failed to validate object", test.right())
+                    logger.error("Failed to validate object", test.r)
                     removals += poolable
                     factory.destroy(poolable.item)
                 }
@@ -272,6 +263,5 @@ open class SingleThreadedAsyncObjectPool<T>(
 
         fun timeElapsed() = System.currentTimeMillis() - time
     }
-}
 
 }
