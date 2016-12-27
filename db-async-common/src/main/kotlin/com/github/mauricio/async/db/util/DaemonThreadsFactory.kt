@@ -16,18 +16,20 @@
 
 package com.github.mauricio.async.db.util
 
-import java.util.concurrent.{ Executors, ThreadFactory }
+import java.util.concurrent.Executors
+import java.util.concurrent.ThreadFactory
+
 import java.util.concurrent.atomic.AtomicInteger
 
-case class DaemonThreadsFactory(name: String) :  ThreadFactory {
+data class DaemonThreadsFactory(val name: String) : ThreadFactory {
 
-  private val threadNumber = new AtomicInteger(1)
+    private val threadNumber = AtomicInteger(1)
 
-  fun newThread(r: Runnable): Thread = {
-    val thread = Executors.defaultThreadFactory().newThread(r)
-    thread.setDaemon(true)
-    val threadName = name + "-thread-" + threadNumber.getAndIncrement
-    thread.setName(threadName)
-    thread
-  }
+    override fun newThread(r: Runnable): Thread {
+        val thread = Executors.defaultThreadFactory().newThread(r)
+        thread.setDaemon(true)
+        val threadName = name + "-thread-" + threadNumber.getAndIncrement()
+        thread.setName(threadName)
+        return thread
+    }
 }

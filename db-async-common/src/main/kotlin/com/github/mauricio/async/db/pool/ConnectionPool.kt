@@ -51,14 +51,11 @@ class ConnectionPool<T : Connection>(
      * @return
      */
 
-    suspend fun disconnect() = suspendable<Connection> {
-        cont ->
-        if (this.isConnected) {
-            this.close.map(item => this)(executionContext)
-        } else {
-            Future.successful(this)
+    override suspend fun disconnect() = suspendable<Connection> {
+        if (isConnected) {
+            close()
         }
-        return this
+        this@ConnectionPool
     }
 
     /**
@@ -68,9 +65,9 @@ class ConnectionPool<T : Connection>(
      * @return
      */
 
-    fun connect: Future[Connection] = Future.successful(this)
+    override suspend fun connect() = suspendCoroutine<Connection> { it.resume(this) }
 
-    fun isConnected: Boolean = !this.isClosed
+    override val isConnected: Boolean get() = !this.isClosed()
 
     /**
      *
@@ -82,8 +79,8 @@ class ConnectionPool<T : Connection>(
      * @return
      */
 
-    fun sendQuery(query: String): Future[QueryResult] =
-    this.use(_.sendQuery(query))(executionContext)
+    override suspend fun sendQuery(query: String): QueryResult =
+            this.use({ it.sendQuery(query) })
 
     /**
      *
@@ -96,8 +93,8 @@ class ConnectionPool<T : Connection>(
      * @return
      */
 
-    fun sendPreparedStatement(query: String, values: Seq[Any] = List()): Future[QueryResult] =
-    this.use(_.sendPreparedStatement(query, values))(executionContext)
+    override suspend fun sendPreparedStatement(query: String, values: List<Any?>): QueryResult =
+            this.use({ it.sendPreparedStatement(query, values) })
 
     /**
      *
@@ -109,8 +106,7 @@ class ConnectionPool<T : Connection>(
      * @return result of f, conditional on transaction operations succeeding
      */
 
-    override fun inTransaction[A](f : Connection => Future[A])(implicit context : ExecutionContext = executionContext) : Future[A] =
-    this.use(_.inTransaction[A](f)(context))(executionContext)
-}
+    override suspend fun <A> inTransaction(f: suspend (conn: Connection) -> A): A =
+            this.use({ it.inTransaction(f) })
 
 }

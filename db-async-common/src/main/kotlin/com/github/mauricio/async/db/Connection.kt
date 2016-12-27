@@ -17,9 +17,6 @@
 package com.github.mauricio.async.db
 
 import com.github.mauricio.async.db.util.suspendable
-import concurrent.Future
-import kotlin.coroutines.startCoroutine
-import kotlin.coroutines.suspendCoroutine
 
 /**
  *

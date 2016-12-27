@@ -16,15 +16,13 @@
 
 package com.github.mauricio.async.db.util
 
-import java.util.concurrent.{ExecutorService, Executors}
-import scala.concurrent.ExecutionContext
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 
 object ExecutorServiceUtils {
-  implicit val CachedThreadPool = Executors.newCachedThreadPool(DaemonThreadsFactory("db-async-default"))
-  implicit val CachedExecutionContext = ExecutionContext.fromExecutor( CachedThreadPool )
+    val cachedThreadPool = Executors.newCachedThreadPool(DaemonThreadsFactory("db-async-default"))
 
-  fun newFixedPool( count : Int, name: String ) : ExecutorService = {
-    Executors.newFixedThreadPool( count, DaemonThreadsFactory(name) )
-  }
+    fun newFixedPool(count: Int, name: String): ExecutorService =
+            Executors.newFixedThreadPool(count, DaemonThreadsFactory(name))
 
 }

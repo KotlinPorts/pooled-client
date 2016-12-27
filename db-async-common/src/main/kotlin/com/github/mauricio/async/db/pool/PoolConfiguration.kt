@@ -16,10 +16,6 @@
 
 package com.github.mauricio.async.db.pool
 
-object PoolConfiguration {
-  val Default = new PoolConfiguration(10, 4, 10)
-}
-
 /**
  *
  * Defines specific pieces of a pool's behavior.
@@ -31,9 +27,13 @@ object PoolConfiguration {
  * @param validationInterval pools will use this value as the timer period to validate idle objects.
  */
 
-case class PoolConfiguration(
-                              maxObjects: Int,
-                              maxIdle: Long,
-                              maxQueueSize: Int,
-                              validationInterval: Long = 5000
-                              )
+data class PoolConfiguration(
+        val maxObjects: Int,
+        val maxIdle: Long,
+        val maxQueueSize: Int,
+        val validationInterval: Long = 5000
+) {
+    companion object {
+        val Default = PoolConfiguration(10, 4, 10)
+    }
+}
