@@ -1,8 +1,12 @@
-package com.github.mauricio.async.db.util
+package com.github.elizarov.async
 
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.startCoroutine
 import kotlin.coroutines.suspendCoroutine
+
+/**
+ * @author Ivan Popelyshev
+ */
 
 /**
  * used as trivial suspend, will be removed for Kotlin 1.1 RC

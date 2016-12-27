@@ -18,17 +18,10 @@ package com.github.mauricio.async.db
 
 import java.nio.charset.Charset
 
-import io.netty.buffer.{ByteBufAllocator, PooledByteBufAllocator}
+import io.netty.buffer.ByteBufAllocator
+import io.netty.buffer.PooledByteBufAllocator
 import io.netty.util.CharsetUtil
-
-import scala.concurrent.duration._
-
-object Configuration {
-  val DefaultCharset = CharsetUtil.UTF_8
-
-  @deprecated("Use com.github.mauricio.async.db.postgresql.util.URLParser.DEFAULT or com.github.mauricio.async.db.mysql.util.URLParser.DEFAULT.", since = "0.2.20")
-  val Default = new Configuration("postgres")
-}
+import java.time.Duration
 
 /**
  *
@@ -53,15 +46,19 @@ object Configuration {
  *
  */
 
-case class Configuration(username: String,
-                         host: String = "localhost",
-                         port: Int = 5432,
-                         password: Option[String] = None,
-                         database: Option[String] = None,
-                         ssl: SSLConfiguration = SSLConfiguration(),
-                         charset: Charset = Configuration.DefaultCharset,
-                         maximumMessageSize: Int = 16777216,
-                         allocator: ByteBufAllocator = PooledByteBufAllocator.DEFAULT,
-                         connectTimeout: Duration = 5.seconds,
-                         testTimeout: Duration = 5.seconds,
-                         queryTimeout: Option[Duration] = None)
+data class Configuration(val username: String,
+                         val host: String = "localhost",
+                         val port: Int = 5432,
+                         val password: String? = null,
+                         val database: String? = null,
+                         val ssl: SSLConfiguration = SSLConfiguration(),
+                         val charset: Charset = Configuration.DefaultCharset,
+                         val maximumMessageSize: Int = 16777216,
+                         val allocator: ByteBufAllocator = PooledByteBufAllocator.DEFAULT,
+                         val connectTimeout: Duration? = Duration.ofSeconds(5),
+                         val testTimeout: Duration? = Duration.ofSeconds(5),
+                         val queryTimeout: Duration? = null) {
+    companion object {
+        val DefaultCharset = CharsetUtil.UTF_8
+    }
+}

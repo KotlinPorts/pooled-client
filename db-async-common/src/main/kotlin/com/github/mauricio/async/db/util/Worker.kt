@@ -21,7 +21,7 @@ import java.util.concurrent.ExecutorService
 
 class Worker(val executorService: ExecutorService) {
 
-    constructor() : this(ExecutorServiceUtils.newFixedPool(1, "db-async-worker"))
+    constructor() : this(ExecutorServiceUtils.newFixedPool(1, "db-com.github.elizarov.async.async-worker"))
 
     companion object : KLogging()
 

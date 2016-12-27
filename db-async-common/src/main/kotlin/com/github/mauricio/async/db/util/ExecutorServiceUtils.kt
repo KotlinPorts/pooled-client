@@ -20,7 +20,7 @@ import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 object ExecutorServiceUtils {
-    val cachedThreadPool = Executors.newCachedThreadPool(DaemonThreadsFactory("db-async-default"))
+    val cachedThreadPool = Executors.newCachedThreadPool(DaemonThreadsFactory("db-com.github.elizarov.async.async-default"))
 
     fun newFixedPool(count: Int, name: String): ExecutorService =
             Executors.newFixedThreadPool(count, DaemonThreadsFactory(name))

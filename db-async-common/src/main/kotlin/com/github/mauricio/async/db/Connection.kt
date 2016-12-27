@@ -16,7 +16,7 @@
 
 package com.github.mauricio.async.db
 
-import com.github.mauricio.async.db.util.suspendable
+import com.github.elizarov.async.suspendable
 
 /**
  *
@@ -135,5 +135,4 @@ interface Connection {
             throw e
         }
     }
-}
 }

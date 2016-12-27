@@ -16,44 +16,32 @@
 
 package com.github.mauricio.async.db.util
 
-import scala.util._
-import scala.util.Success
-
-object Version {
-
-  private fun tryParse( index : Int, pieces : Array[String] ) : Int = {
-
-    Try {
-      pieces(index).toInt
-    } match {
-      case Success(value) => value
-      case Failure(e) => 0
+data class Version(val major: Int, val minor: Int, val maintenance: Int) : Comparable<Version> {
+    companion object {
+        private fun tryParse(index: Int, pieces: Array<String>): Int =
+                try {
+                    pieces[index].toInt()
+                } catch(e: Throwable) {
+                    0
+                }
     }
 
-  }
+    constructor(pieces: Array<String>) :
+            this(tryParse(0, pieces), tryParse(1, pieces), tryParse(2, pieces))
 
-  fun apply( version : String ) : Version = {
-    val pieces = version.split('.')
-    new Version( tryParse(0, pieces), tryParse(1, pieces), tryParse(2, pieces) )
-  }
+    override fun compareTo(y: Version): Int {
+        if (this == y) {
+            return 0
+        }
 
-}
+        if (this.major != y.major) {
+            return this.major - y.major
+        }
 
-case class Version( major : Int, minor : Int, maintenance : Int ) :  Ordered[Version] {
-  override fun compare( y: Version): Int = {
+        if (this.minor != y.minor) {
+            return this.minor - y.minor
+        }
 
-    if ( this == y ) {
-      return 0
+        return this.maintenance - y.maintenance
     }
-
-    if ( this.major != y.major ) {
-      return this.major.compare(y.major)
-    }
-
-    if ( this.minor != y.minor ) {
-      return this.minor.compare(y.minor)
-    }
-
-    this.maintenance.compare(y.maintenance)
-  }
 }

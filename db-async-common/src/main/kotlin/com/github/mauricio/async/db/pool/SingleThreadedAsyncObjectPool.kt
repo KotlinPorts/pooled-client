@@ -17,8 +17,8 @@
 package com.github.mauricio.async.db.pool
 
 import com.github.mauricio.async.db.util.Worker
-import com.github.mauricio.async.db.util.justDoIt
-import com.github.mauricio.async.db.util.suspendable
+import com.github.elizarov.async.justDoIt
+import com.github.elizarov.async.suspendable
 import mu.KLogging
 import org.funktionale.either.Either
 import java.util.*
@@ -53,7 +53,7 @@ open class SingleThreadedAsyncObjectPool<T>(
     private var poolables = listOf<PoolableHolder<T>>()
     private val checkouts = ArrayList<T>(configuration.maxObjects)
     private val waitQueue: Queue<Continuation<T>> = LinkedList<Continuation<T>>()
-    private val timer = Timer("async-object-pool-timer-" + Counter.incrementAndGet(), true)
+    private val timer = Timer("com.github.elizarov.async.async-object-pool-timer-" + Counter.incrementAndGet(), true)
 
     init {
         timer.scheduleAtFixedRate(object : TimerTask() {

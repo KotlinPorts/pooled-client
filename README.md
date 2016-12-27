@@ -1,4 +1,4 @@
-Port of Mauricio's [async postgres/mysql driver](https://github.com/mauricio/postgresql-async)
+Port of Mauricio's [com.github.elizarov.async.async postgres/mysql driver](https://github.com/mauricio/postgresql-com.github.elizarov.async.async)
 
 Differences:
 

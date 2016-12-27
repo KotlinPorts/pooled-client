@@ -19,7 +19,7 @@ package com.github.mauricio.async.db.pool
 import com.github.mauricio.async.db.util.ExecutorServiceUtils
 import com.github.mauricio.async.db.QueryResult
 import com.github.mauricio.async.db.Connection
-import com.github.mauricio.async.db.util.suspendable
+import com.github.elizarov.async.suspendable
 import kotlin.coroutines.suspendCoroutine
 
 /**

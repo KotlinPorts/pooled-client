@@ -42,7 +42,7 @@ interface ObjectFactory<T> {
    *
    * This method should "close" and release all resources acquired by the pooled object. This object will not be used
    * anymore so any cleanup necessary to remove it from memory should be made in this method. Implementors should not
-   * raise an exception under any circumstances, the factory should log and clean up the exception itself.
+   * raise an exception under any circumstances, the factory should com.github.elizarov.async.log and clean up the exception itself.
    *
    * @param item
    */

@@ -16,11 +16,11 @@
 
 package com.github.mauricio.async.db.pool
 
-import com.github.mauricio.async.db.util.suspendable
+import com.github.elizarov.async.suspendable
 
 /**
  *
- * Defines the common interface for async object pools. These are pools that do not block clients trying to acquire
+ * Defines the common interface for com.github.elizarov.async.async object pools. These are pools that do not block clients trying to acquire
  * a resource from it. Different than the usual synchronous pool, you **must** return objects back to it manually
  * since it's impossible for the pool to know when the object is ready to be given back.
  *
