@@ -99,13 +99,13 @@ abstract class AbstractURIParser {
     fun parse(url: String,
               charset: Charset = DEFAULT.charset
     ): Configuration =
-        try {
-            parseOrDie(url, charset)
-        } catch (e : Throwable) {
-            logger.warn("Connection url '$url' could not be parsed.", e)
-            // Fallback to default to maintain current behavior
-            DEFAULT
-        }
+            try {
+                parseOrDie(url, charset)
+            } catch (e: Throwable) {
+                logger.warn("Connection url '$url' could not be parsed.", e)
+                // Fallback to default to maintain current behavior
+                DEFAULT
+            }
 
     /**
      * Assembles a configuration out of the provided property map.  This is the generic form, subclasses may override to
@@ -120,7 +120,7 @@ abstract class AbstractURIParser {
                     password = properties.get(PASSWORD),
                     database = properties.get(DBNAME),
                     host = properties.getOrDefault(HOST, DEFAULT.host),
-                    port = properties.get(PORT)?.let { it.toInt() } ?: DEFAULT.port,
+                    port = properties.get(PORT)?.toInt() ?: DEFAULT.port,
                     ssl = SSLConfiguration(properties),
                     charset = charset
             )
@@ -147,13 +147,12 @@ abstract class AbstractURIParser {
                 host?.let { unwrapIpv6address(it) }?.let { builder[HOST] = it }
 
                 // Parse query string parameters and just append them, overriding anything previously set
-                uri?.query?.split('&')?.forEach {
+                uri.query?.split('&')?.forEach {
                     parameter ->
-                    val (name, value) = parameter.split('=')
-                    if (name != null &&
-                            value != null) {
-                        builder.put(URLDecoder.decode(name, "UTF-8"),
-                                URLDecoder.decode(value, "UTF-8"))
+                    val list = parameter.split('=')
+                    if (list.size == 2) {
+                        builder.put(URLDecoder.decode(list[0], "UTF-8"),
+                                URLDecoder.decode(list[1], "UTF-8"))
                     }
                 }
 
@@ -167,11 +166,11 @@ abstract class AbstractURIParser {
      * without reimplementing all of parse.
      */
     protected fun handleJDBC(uri: URI): Map<String, String> =
-        parse(URI(uri.getSchemeSpecificPart()))
+            parse(URI(uri.getSchemeSpecificPart()))
 
     protected fun unwrapIpv6address(server: String): String =
-        if (server.startsWith("[")) {
-            server.substring(1, server.length - 1)
-        } else server
+            if (server.startsWith("[")) {
+                server.substring(1, server.length - 1)
+            } else server
 }
 
