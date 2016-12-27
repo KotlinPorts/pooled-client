@@ -18,98 +18,96 @@ package com.github.mauricio.async.db.util
 
 import com.github.mauricio.async.db.exceptions.UnknownLengthException
 import java.nio.charset.Charset
-import scala.language.implicitConversions
 import io.netty.buffer.ByteBuf
+import mu.KLogging
 
-object ChannelWrapper {
-  implicit fun bufferToWrapper( buffer : ByteBuf ) = new ChannelWrapper(buffer)
+//TODO: kotlin implicitConversions?
+//TODO: it was AnyVal, is it correct to make it data class?
+data class ChannelWrapper(val buffer: ByteBuf) {
 
-  final val MySQL_NULL = 0xfb
-  final val log = Log.get[ChannelWrapper]
-
-}
-
-class ChannelWrapper( val buffer : ByteBuf ) :  AnyVal {
-
-  import ChannelWrapper._
-
-  fun readFixedString( length : Int, charset : Charset ) : String = {
-    val bytes = new Array[Byte](length)
-    buffer.readBytes( bytes )
-    new String( bytes, charset )
-  }
-
-  fun readCString( charset : Charset ) = ByteBufferUtils.readCString(buffer, charset)
-
-  fun readUntilEOF( charset: Charset ) = ByteBufferUtils.readUntilEOF(buffer, charset)
-
-  fun readLengthEncodedString( charset : Charset ) : String = {
-    val length = readBinaryLength
-    readFixedString(length.asInstanceOf[Int], charset)
-  }
-
-  fun readBinaryLength : Long = {
-    val firstByte = buffer.readUnsignedByte()
-
-    if ( firstByte <= 250 ) {
-      firstByte
-    } else {
-      firstByte match {
-        case MySQL_NULL => -1
-        case 252 => buffer.readUnsignedShort()
-        case 253 => readLongInt
-        case 254 => buffer.readLong()
-        case _ => throw new UnknownLengthException(firstByte)
-      }
+    companion object : KLogging() {
+        val MySQL_NULL = 0xfb
+        fun bufferToWrapper(buffer: ByteBuf) = ChannelWrapper(buffer)
     }
 
-  }
-
-  fun readLongInt : Int = {
-    val first = buffer.readByte()
-    val second = buffer.readByte()
-    val third = buffer.readByte()
-
-    ( first & 0xff ) | (( second & 0xff ) << 8) | ((third & 0xff) << 16)
-  }
-
-  fun writeLength( length : Long ) {
-    if (length < 251) {
-      buffer.writeByte( length.asInstanceOf[Byte])
-    } else if (length < 65536L) {
-      buffer.writeByte(252)
-      buffer.writeShort(length.asInstanceOf[Int])
-    } else if (length < 16777216L) {
-      buffer.writeByte(253)
-      writeLongInt(length.asInstanceOf[Int])
-    } else {
-      buffer.writeByte(254)
-      buffer.writeLong(length)
+    fun readFixedString(length: Int, charset: Charset): String {
+        val bytes = ByteArray(length)
+        buffer.readBytes(bytes)
+        return String(bytes, charset)
     }
-  }
 
-  fun writeLongInt(i : Int) {
-    buffer.writeByte( i & 0xff )
-    buffer.writeByte( i >>> 8 )
-    buffer.writeByte( i >>> 16 )
-  }
+    fun readCString(charset: Charset) = ByteBufferUtils.readCString(buffer, charset)
 
-  fun writeLenghtEncodedString( value : String, charset : Charset ) {
-    val bytes = value.getBytes(charset)
-    writeLength(bytes.length)
-    buffer.writeBytes(bytes)
-  }
+    fun readUntilEOF(charset: Charset) = ByteBufferUtils.readUntilEOF(buffer, charset)
 
-  fun writePacketLength( sequence : Int = 0 ) {
-    ByteBufferUtils.writePacketLength(buffer, sequence )
-  }
+    fun readLengthEncodedString(charset: Charset): String {
+        val length = readBinaryLength()
+        return readFixedString(length.toInt(), charset)
+    }
 
-  fun mysqlReadInt() : Int = {
-    val first = buffer.readByte()
-    val last = buffer.readByte()
+    fun readBinaryLength(): Long {
+        val firstByte = buffer.readUnsignedByte().toInt()
 
-    (first & 0xff) | ((last & 0xff) << 8)
-  }
+        if (firstByte <= 250) {
+            return firstByte.toLong()
+        } else {
+            return when (firstByte) {
+                MySQL_NULL -> -1L
+                252 -> buffer.readUnsignedShort().toLong()
+                253 -> readLongInt().toLong()
+                254 -> buffer.readLong()
+                else -> throw UnknownLengthException(firstByte)
+            }
+        }
+    }
+
+    fun readLongInt(): Int {
+        val first = buffer.readByte().toInt()
+        val second = buffer.readByte().toInt()
+        val third = buffer.readByte().toInt()
+
+        return (first and 0xff) or
+                ((second and 0xff) shl 8) or
+                ((third and 0xff) shl 16)
+    }
+
+    fun writeLength(length: Long) {
+        if (length < 251) {
+            buffer.writeByte(length.toInt())
+        } else if (length < 65536L) {
+            buffer.writeByte(252)
+            buffer.writeShort(length.toInt())
+        } else if (length < 16777216L) {
+            buffer.writeByte(253)
+            writeLongInt(length.toInt())
+        } else {
+            buffer.writeByte(254)
+            buffer.writeLong(length)
+        }
+    }
+
+    fun writeLongInt(i: Int) {
+        buffer.writeByte(i and 0xff)
+        buffer.writeByte(i shl 8)
+        buffer.writeByte(i shl 16)
+    }
+
+    fun writeLengthEncodedString(value: String, charset: Charset) {
+        val bytes = value.toByteArray(charset)
+        writeLength(bytes.size.toLong())
+        buffer.writeBytes(bytes)
+    }
+
+    fun writePacketLength(sequence: Int = 0) {
+        ByteBufferUtils.writePacketLength(buffer, sequence)
+    }
+
+    fun mysqlReadInt(): Int {
+        val first = buffer.readByte().toInt()
+        val last = buffer.readByte().toInt()
+
+        return (first and 0xff) or ((last and 0xff) shl 8)
+    }
 
 
 }

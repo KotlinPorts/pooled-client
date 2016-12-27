@@ -16,37 +16,39 @@
 
 package com.github.mauricio.async.db.util
 
-import io.netty.channel.ChannelFuture
-import io.netty.channel.ChannelFutureListener
+//TODO: convert ChannelFuture to continuations somehow
 
-import scala.concurrent.{Promise, Future}
-import com.github.mauricio.async.db.exceptions.CanceledChannelFutureException
-import scala.language.implicitConversions
+//import io.netty.channel.ChannelFuture
+//import io.netty.channel.ChannelFutureListener
 
-object ChannelFutureTransformer {
-
-  implicit fun toFuture(channelFuture: ChannelFuture): Future[ChannelFuture] = {
-    val promise = Promise[ChannelFuture]
-
-    channelFuture.addListener(new ChannelFutureListener {
-      fun operationComplete(future: ChannelFuture) {
-        if ( future.isSuccess ) {
-          promise.success(future)
-        } else {
-          val exception = if ( future.cause == null ) {
-            new CanceledChannelFutureException(future)
-              .fillInStackTrace()
-          } else {
-            future.cause
-          }
-
-          promise.failure(exception)
-
-        }
-      }
-    })
-
-    promise.future
-  }
-
-}
+//import scala.concurrent.{Promise, Future}
+//import com.github.mauricio.async.db.exceptions.CanceledChannelFutureException
+//import scala.language.implicitConversions
+//
+//object ChannelFutureTransformer {
+//
+//  implicit fun toFuture(channelFuture: ChannelFuture): Future[ChannelFuture] = {
+//    val promise = Promise[ChannelFuture]
+//
+//    channelFuture.addListener(new ChannelFutureListener {
+//      fun operationComplete(future: ChannelFuture) {
+//        if ( future.isSuccess ) {
+//          promise.success(future)
+//        } else {
+//          val exception = if ( future.cause == null ) {
+//            new CanceledChannelFutureException(future)
+//              .fillInStackTrace()
+//          } else {
+//            future.cause
+//          }
+//
+//          promise.failure(exception)
+//
+//        }
+//      }
+//    })
+//
+//    promise.future
+//  }
+//
+//}

@@ -1,63 +1,57 @@
 package com.github.mauricio.async.db.pool
 
-import scala.concurrent.Future
-import com.github.mauricio.async.db.util.ExecutorServiceUtils
-import scala.concurrent.Promise
+import com.github.elizarov.async.suspendable
 import java.util.concurrent.ConcurrentHashMap
-import scala.util.Success
-import scala.util.Failure
+import kotlin.coroutines.Continuation
 
 class PartitionedAsyncObjectPool<T>(
-    factory: ObjectFactory<T>,
-    configuration: PoolConfiguration,
-    numberOfPartitions: Int)
+    val factory: ObjectFactory<T>,
+    val configuration: PoolConfiguration,
+    val numberOfPartitions: Int)
     :  AsyncObjectPool<T> {
 
-    import ExecutorServiceUtils.CachedExecutionContext
+    //TODO: why is it a map? why not array?
+    private val pools = Array<Pair<Int, SingleThreadedAsyncObjectPool<T>>>(numberOfPartitions,
+    {
+        i ->
+        Pair(i, SingleThreadedAsyncObjectPool<T>(factory, partitionConfig()))
+    }).toMap()
 
-    private val pools =
-        (0 until numberOfPartitions)
-            .map(_ -> new SingleThreadedAsyncObjectPool(factory, partitionConfig))
-            .toMap
+    private val checkouts = ConcurrentHashMap<T, SingleThreadedAsyncObjectPool<T>>()
 
-    private val checkouts = new ConcurrentHashMap[T, SingleThreadedAsyncObjectPool[T]]
-
-    fun take: Future[T] = {
-        val pool = currentPool
-        pool.take.andThen {
-            case Success(conn) =>
-                checkouts.put(conn, pool)
-            case Failure(_) =>
-        }
+    override suspend fun take() = suspendable<T> {
+        val pool = currentPool()
+        val item = pool.take()
+        checkouts.put(item, pool)
+        item
     }
 
-    fun giveBack(item: T) =
+    override suspend fun giveBack(item: T) =
         checkouts
-            .remove(item)
+            .remove(item)!!
             .giveBack(item)
-            .map(_ => this)
 
-    fun close =
-        Future.sequence(pools.values.map(_.close)).map {
-            _ => this
-        }
+    override suspend fun close() = suspendable<PartitionedAsyncObjectPool<T>> {
+        pools.values.forEach { it.close() }
+        this@PartitionedAsyncObjectPool
+    }
 
-    fun availables: Traversable[T] = pools.values.map(_.availables).flatten
+    fun availables(): Iterable<T> = pools.values.flatMap { it.availables() }
 
-    fun inUse: Traversable[T] = pools.values.map(_.inUse).flatten
+    fun inUse(): Iterable<T> = pools.values.flatMap { it.inUse() }
 
-    fun queued: Traversable[Promise[T]] = pools.values.map(_.queued).flatten
+    fun queued(): Iterable<Continuation<T>> = pools.values.flatMap { it.queued() }
 
-    protected fun isClosed =
-        pools.values.forall(_.isClosed)
+    protected fun isClosed() =
+        pools.values.find { !it.isClosed() } == null
 
-    private fun currentPool =
-        pools(currentThreadAffinity)
+    private fun currentPool() =
+        pools[currentThreadAffinity()]!!
 
-    private fun currentThreadAffinity =
-        (Thread.currentThread.getId % numberOfPartitions).toInt
+    private fun currentThreadAffinity() =
+        (Thread.currentThread().getId() % numberOfPartitions).toInt()
 
-    private fun partitionConfig =
+    private fun partitionConfig() =
         configuration.copy(
             maxObjects = configuration.maxObjects / numberOfPartitions,
             maxQueueSize = configuration.maxQueueSize / numberOfPartitions
