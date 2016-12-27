@@ -19,6 +19,7 @@ package com.github.mauricio.async.db.pool
 import com.github.mauricio.async.db.util.ExecutorServiceUtils
 import com.github.mauricio.async.db.QueryResult
 import com.github.mauricio.async.db.Connection
+import com.github.mauricio.async.db.util.suspendable
 import kotlin.coroutines.suspendCoroutine
 
 /**
@@ -50,13 +51,14 @@ class ConnectionPool<T : Connection>(
      * @return
      */
 
-    suspend fun disconnect() = suspendCoroutine {
+    suspend fun disconnect() = suspendable<Connection> {
         cont ->
         if (this.isConnected) {
             this.close.map(item => this)(executionContext)
         } else {
             Future.successful(this)
         }
+        return this
     }
 
     /**

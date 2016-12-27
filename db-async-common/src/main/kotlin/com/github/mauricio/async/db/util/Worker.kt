@@ -16,39 +16,26 @@
 
 package com.github.mauricio.async.db.util
 
+import mu.KLogging
 import java.util.concurrent.ExecutorService
 
-object Worker {
-  val log = Log.get[Worker]
+class Worker(val executorService: ExecutorService) {
 
-  fun apply() : Worker = apply(ExecutorServiceUtils.newFixedPool(1, "db-async-worker"))
+    constructor() : this(ExecutorServiceUtils.newFixedPool(1, "db-async-worker"))
 
-  fun apply( executorService : ExecutorService ) : Worker = {
-    new Worker(ExecutionContext.fromExecutorService( executorService ))
-  }
+    companion object : KLogging()
 
-}
+    fun action(f: () -> Unit) {
+        executorService.execute({
+            try {
+                f
+            } catch (e: Throwable) {
+                logger.error("Failed to execute task %s".format(f), e)
+            }
+        })
+    }
 
-class Worker( val executionContext : ExecutionContextExecutorService ) {
-
-  import Worker.log
-
-  fun action(f: => Unit) {
-    this.executionContext.execute(new Runnable {
-      fun run() {
-        try {
-          f
-        } catch {
-          case e : Exception => {
-            log.error("Failed to execute task %s".format(f), e)
-          }
-        }
-      }
-    })
-  }
-
-  fun shutdown {
-    this.executionContext.shutdown()
-  }
-
+    fun shutdown() {
+        this.executorService.shutdown()
+    }
 }

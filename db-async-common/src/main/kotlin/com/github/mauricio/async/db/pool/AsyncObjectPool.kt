@@ -16,6 +16,8 @@
 
 package com.github.mauricio.async.db.pool
 
+import com.github.mauricio.async.db.util.suspendable
+
 /**
  *
  * Defines the common interface for async object pools. These are pools that do not block clients trying to acquire
@@ -27,47 +29,55 @@ package com.github.mauricio.async.db.pool
 
 interface AsyncObjectPool<T> {
 
-  /**
-   *
-   * Returns an object from the pool to the callee with the returned future. If the pool can not create or enqueue
-   * requests it will fill the returned [[scala.concurrent.Future]] with an
-   * [[com.github.mauricio.async.db.pool.PoolExhaustedException]].
-   *
-   * @return future that will eventually return a usable pool object.
-   */
+    /**
+     *
+     * Returns an object from the pool to the callee with the returned future. If the pool can not create or enqueue
+     * requests it will fill the returned [[scala.concurrent.Future]] with an
+     * [[com.github.mauricio.async.db.pool.PoolExhaustedException]].
+     *
+     * @return future that will eventually return a usable pool object.
+     */
 
-  suspend fun take(): T
+    suspend fun take(): T
 
-  /**
-   *
-   * Returns an object taken from the pool back to it. This object will become available for another client to use.
-   * If the object is invalid or can not be reused for some reason the [[scala.concurrent.Future]] returned will contain
-   * the error that prevented this object of being added back to the pool. The object is then discarded from the pool.
-   *
-   * @param item
-   * @return
-   */
+    /**
+     *
+     * Returns an object taken from the pool back to it. This object will become available for another client to use.
+     * If the object is invalid or can not be reused for some reason the [[scala.concurrent.Future]] returned will contain
+     * the error that prevented this object of being added back to the pool. The object is then discarded from the pool.
+     *
+     * @param item
+     * @return
+     */
 
-  suspend fun giveBack(): T
+    suspend fun giveBack(item: T): AsyncObjectPool<T>
 
-  /**
-   *
-   * Closes this pool and future calls to **take** will cause the [[scala.concurrent.Future]] to raise an
-   * [[com.github.mauricio.async.db.pool.PoolAlreadyTerminatedException]].
-   *
-   * @return
-   */
+    /**
+     *
+     * Closes this pool and future calls to **take** will cause the [[scala.concurrent.Future]] to raise an
+     * [[com.github.mauricio.async.db.pool.PoolAlreadyTerminatedException]].
+     *
+     * @return
+     */
 
-  suspend fun close(): AsyncObjectPool<T>
+    suspend fun close(): AsyncObjectPool<T>
 
-  /**
-   *
-   * Retrieve and use an object from the pool for a single computation, returning it when the operation completes.
-   *
-   * @param f function that uses the object
-   * @return f wrapped with take and giveBack
-   */
-  //sorry, use isnt needed in Kotlin
-//  suspend use<A>(suspend f: (T) -> A):  =
+    /**
+     *
+     * Retrieve and use an object from the pool for a single computation, returning it when the operation completes.
+     *
+     * @param f function that uses the object
+     * @return f wrapped with take and giveBack
+     */
+
+    //sorry, no use here
+    suspend fun <A> use(f: suspend (t: T) -> A) = suspendable<A> {
+        val item = take()
+        try {
+            return@suspendable f(item)
+        } finally {
+            giveBack(item)
+        }
+    }
 
 }
