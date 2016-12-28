@@ -24,8 +24,6 @@ import com.github.mauricio.async.db.exceptions.UnableToParseURLException
 import com.github.mauricio.async.db.Configuration
 import com.github.mauricio.async.db.SSLConfiguration
 import mu.KLogging
-import org.funktionale.option.Option
-import org.slf4j.LoggerFactory
 
 /**
  * Common parser assisting methods for PG and MySQL URI parsers.

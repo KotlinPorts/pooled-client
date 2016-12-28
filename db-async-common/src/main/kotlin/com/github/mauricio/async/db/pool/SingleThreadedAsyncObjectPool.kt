@@ -16,8 +16,8 @@
 
 package com.github.mauricio.async.db.pool
 
+import com.github.elizarov.async.async
 import com.github.mauricio.async.db.util.Worker
-import com.github.elizarov.async.justDoIt
 import com.github.elizarov.async.suspendable
 import mu.KLogging
 import org.funktionale.either.Either
@@ -225,7 +225,7 @@ open class SingleThreadedAsyncObjectPool<T>(
     }
 
     protected fun finalize() {
-        justDoIt { close() }
+        async { close() }
     }
 
     /**
