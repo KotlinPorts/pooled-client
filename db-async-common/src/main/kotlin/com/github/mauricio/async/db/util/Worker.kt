@@ -28,7 +28,7 @@ class Worker(val executorService: ExecutorService) {
     fun action(f: () -> Unit) {
         executorService.execute({
             try {
-                f
+                f()
             } catch (e: Throwable) {
                 logger.error("Failed to execute task %s".format(f), e)
             }
