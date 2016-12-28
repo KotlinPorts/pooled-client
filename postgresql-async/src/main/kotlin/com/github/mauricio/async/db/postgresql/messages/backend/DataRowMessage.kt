@@ -18,4 +18,5 @@ package com.github.mauricio.async.db.postgresql.messages.backend
 
 import io.netty.buffer.ByteBuf
 
-data class DataRowMessage(val values: Array<ByteBuf>) : ServerMessage(ServerMessage.DataRow)
+//TODO: override equals and hashcode
+data class DataRowMessage(val values: Array<ByteBuf?>) : ServerMessage(ServerMessage.DataRow)

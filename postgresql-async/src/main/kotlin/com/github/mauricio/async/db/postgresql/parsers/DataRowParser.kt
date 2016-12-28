@@ -22,22 +22,15 @@ import io.netty.buffer.ByteBuf
 
 object DataRowParser : MessageParser {
 
-  override fun parseMessage(buffer: ByteBuf): ServerMessage {
+    override fun parseMessage(buffer: ByteBuf): ServerMessage =
+            DataRowMessage(Array<ByteBuf?>(buffer.readShort().toInt(), {
+                column ->
+                val length = buffer.readInt()
 
-    val row = Array<ByteBuf?>(buffer.readShort().toInt())
-
-    (0..row.size-1).forEach {
-      column ->
-        val length = buffer.readInt()
-
-        row[column] = if (length == -1) {
-          null
-        } else {
-          buffer.readBytes(length)
-        }
-    }
-
-    return DataRowMessage(row)
-  }
-
+                if (length == -1) {
+                    null
+                } else {
+                    buffer.readBytes(length)
+                }
+            }))
 }

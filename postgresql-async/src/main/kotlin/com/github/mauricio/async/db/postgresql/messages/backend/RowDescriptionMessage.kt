@@ -16,5 +16,6 @@
 
 package com.github.mauricio.async.db.postgresql.messages.backend
 
-data class RowDescriptionMessage(val columnDatas: Array[PostgreSQLColumnData])
+//TODO: override equals and hashCode
+data class RowDescriptionMessage(val columnDatas: Array<PostgreSQLColumnData>)
   : ServerMessage(ServerMessage.RowDescription)
