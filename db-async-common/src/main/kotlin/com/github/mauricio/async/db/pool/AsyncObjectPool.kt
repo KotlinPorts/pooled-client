@@ -71,8 +71,9 @@ interface AsyncObjectPool<T> {
      */
 
     //sorry, no use here
-    suspend fun <A> use(f: suspend (t: T) -> A) = suspendable<A> {
+    suspend fun <A> use(f: suspend (t: T) -> A) : A = suspendable {
         val item = take()
+
         try {
             return@suspendable f(item)
         } finally {

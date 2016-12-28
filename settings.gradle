@@ -1,2 +1,4 @@
 rootProject.name = 'kt-sql-async'
 include 'db-async-common'
+include 'postgresql-async'
+
