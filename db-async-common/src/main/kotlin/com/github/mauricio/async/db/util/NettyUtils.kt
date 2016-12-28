@@ -26,6 +26,6 @@ object NettyUtils {
     }
 
     val DefaultEventLoopGroup by lazy {
-        NioEventLoopGroup(0, DaemonThreadsFactory("db-com.github.mauricio.async.db.util-netty"))
+        NioEventLoopGroup(0, DaemonThreadsFactory("db-async-netty"))
     }
 }

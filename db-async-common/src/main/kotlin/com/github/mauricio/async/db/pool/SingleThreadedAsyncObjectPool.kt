@@ -53,7 +53,7 @@ open class SingleThreadedAsyncObjectPool<T>(
     private var poolables = listOf<PoolableHolder<T>>()
     private val checkouts = ArrayList<T>(configuration.maxObjects)
     private val waitQueue: Queue<Continuation<T>> = LinkedList<Continuation<T>>()
-    private val timer = Timer("com.github.elizarov.async.async-object-pool-timer-" + Counter.incrementAndGet(), true)
+    private val timer = Timer("async-object-pool-timer-" + Counter.incrementAndGet(), true)
 
     init {
         timer.scheduleAtFixedRate(object : TimerTask() {
