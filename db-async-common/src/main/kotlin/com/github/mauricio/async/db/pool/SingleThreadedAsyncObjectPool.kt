@@ -65,13 +65,6 @@ open class SingleThreadedAsyncObjectPool<T>(
         }, configuration.validationInterval, configuration.validationInterval)
     }
 
-    private suspend fun <A> act(f: suspend SingleThreadedAsyncObjectPool<T>.() -> A) = suspendCoroutine<A> {
-        cont ->
-        mainPool.action {
-            f.startCoroutine(this@SingleThreadedAsyncObjectPool, cont)
-        }
-    }
-
     private var closed = false
 
     /**
@@ -98,7 +91,7 @@ open class SingleThreadedAsyncObjectPool<T>(
      * @return
      */
 
-    override suspend fun giveBack(item: T) = act<AsyncObjectPool<T>>
+    override suspend fun giveBack(item: T) = mainPool.act<AsyncObjectPool<T>>
     {
         // Ensure it came from this pool
         val idx = this.checkouts.indexOf(item)
@@ -128,12 +121,12 @@ open class SingleThreadedAsyncObjectPool<T>(
 
     override suspend fun close() = suspendable<AsyncObjectPool<T>> {
         try {
-            act<Unit> {
+            mainPool.act<Unit> {
                 if (!closed) {
                     timer.cancel()
                     mainPool.shutdown()
-                    this.closed = true
-                    (this.poolables.map({ it.item }) + this.checkouts)
+                    closed = true
+                    (poolables.map({ it.item }) + checkouts)
                             .forEach({ factory.destroy(it) })
                 }
             }
@@ -189,7 +182,7 @@ open class SingleThreadedAsyncObjectPool<T>(
     }
 
     private fun checkout(cont: Continuation<T>) {
-        this.mainPool.action {
+        mainPool.action {
             if (this.isFull()) {
                 this.enqueuePromise(cont)
             } else {

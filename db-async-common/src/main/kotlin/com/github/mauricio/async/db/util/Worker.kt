@@ -18,12 +18,22 @@ package com.github.mauricio.async.db.util
 
 import mu.KLogging
 import java.util.concurrent.ExecutorService
+import kotlin.coroutines.startCoroutine
+import kotlin.coroutines.suspendCoroutine
 
 class Worker(val executorService: ExecutorService) {
 
     constructor() : this(ExecutorServiceUtils.newFixedPool(1, "db-async-worker"))
 
     companion object : KLogging()
+
+    //TODO: make it as dispatcher
+    suspend fun <A> act(f: suspend () -> A) = suspendCoroutine<A> {
+        cont ->
+        executorService.execute({
+            f.startCoroutine(cont)
+        })
+    }
 
     fun action(f: () -> Unit) {
         executorService.execute({
