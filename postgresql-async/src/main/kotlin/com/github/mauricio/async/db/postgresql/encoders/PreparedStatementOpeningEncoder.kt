@@ -18,25 +18,22 @@ package com.github.mauricio.async.db.postgresql.encoders
 
 import com.github.mauricio.async.db.column.ColumnEncoderRegistry
 import com.github.mauricio.async.db.postgresql.messages.backend.ServerMessage
-import com.github.mauricio.async.db.postgresql.messages.frontend.{ClientMessage, PreparedStatementOpeningMessage}
-import com.github.mauricio.async.db.util.{Log, ByteBufferUtils}
+import com.github.mauricio.async.db.postgresql.messages.frontend.ClientMessage
+import com.github.mauricio.async.db.postgresql.messages.frontend.PreparedStatementOpeningMessage
+import com.github.mauricio.async.db.util.ByteBufferUtils
 import java.nio.charset.Charset
-import io.netty.buffer.{Unpooled, ByteBuf}
-
-object PreparedStatementOpeningEncoder {
-  val log = Log.get[PreparedStatementOpeningEncoder]
-}
+import io.netty.buffer.Unpooled
+import io.netty.buffer.ByteBuf
+import mu.KLogging
 
 class PreparedStatementOpeningEncoder(charset: Charset, encoder : ColumnEncoderRegistry)
-  : Encoder
-  with PreparedStatementEncoderHelper
+  : Encoder, PreparedStatementEncoderHelper
 {
+  companion object: KLogging()
 
-  import PreparedStatementOpeningEncoder.log
+  override fun encode(message: ClientMessage): ByteBuf {
 
-  override fun encode(message: ClientMessage): ByteBuf = {
-
-    val m = message.asInstanceOf[PreparedStatementOpeningMessage]
+    val m = (message as PreparedStatementOpeningMessage)!!
 
     val statementIdBytes = m.statementId.toString.getBytes(charset)
     val columnCount = m.valueTypes.size

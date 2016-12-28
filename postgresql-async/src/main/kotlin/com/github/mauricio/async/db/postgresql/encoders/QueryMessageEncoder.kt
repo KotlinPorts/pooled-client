@@ -17,26 +17,25 @@
 package com.github.mauricio.async.db.postgresql.encoders
 
 import com.github.mauricio.async.db.postgresql.messages.backend.ServerMessage
-import com.github.mauricio.async.db.postgresql.messages.frontend.{QueryMessage, ClientMessage}
-import com.github.mauricio.async.db.util.{Log, ByteBufferUtils}
+import com.github.mauricio.async.db.postgresql.messages.frontend.QueryMessage
+import com.github.mauricio.async.db.postgresql.messages.frontend.ClientMessage
+import com.github.mauricio.async.db.util.ByteBufferUtils
 import java.nio.charset.Charset
-import io.netty.buffer.{Unpooled, ByteBuf}
+import io.netty.buffer.Unpooled
+import io.netty.buffer.ByteBuf
+import mu.KLogging
 
-object QueryMessageEncoder {
-  val log = Log.get[QueryMessageEncoder]
-}
+class QueryMessageEncoder(val charset: Charset) : Encoder {
 
-class QueryMessageEncoder(charset: Charset) : Encoder {
+  companion object: KLogging()
 
-  import QueryMessageEncoder.log
+  override fun encode(message: ClientMessage): ByteBuf {
 
-  override fun encode(message: ClientMessage): ByteBuf = {
+    val m = (message as QueryMessage)!!
 
-    val m = message.asInstanceOf[QueryMessage]
-
-    if ( log.isDebugEnabled ) {
-      log.debug("Executing direct query ({})", m.query)
-    }
+//    if ( log.isDebugEnabled ) {
+//      log.debug("Executing direct query ({})", m.query)
+//    }
 
     val buffer = Unpooled.buffer()
     buffer.writeByte(ServerMessage.Query)
@@ -45,7 +44,7 @@ class QueryMessageEncoder(charset: Charset) : Encoder {
 
     ByteBufferUtils.writeLength(buffer)
 
-    buffer
+    return buffer
   }
 
 }

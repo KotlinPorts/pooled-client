@@ -19,10 +19,10 @@ package com.github.mauricio.async.db.postgresql.messages.frontend
 import com.github.mauricio.async.db.column.ColumnEncoderRegistry
 import com.github.mauricio.async.db.postgresql.messages.backend.ServerMessage
 
-class PreparedStatementOpeningMessage(statementId: Int, query: String, values: Seq[Any], encoderRegistry : ColumnEncoderRegistry)
-  : PreparedStatementMessage(statementId: Int, ServerMessage.Parse, query, values, encoderRegistry) {
+class PreparedStatementOpeningMessage(statementId: Int, query: String, values: List<Any>, encoderRegistry : ColumnEncoderRegistry)
+  : PreparedStatementMessage(statementId, ServerMessage.Parse, query, values, encoderRegistry) {
 
   override fun toString() : String =
-    s"${this.getClass.getSimpleName}(id=${statementId},query=${query},values=${values}})"
+    "${this.javaClass.getSimpleName()}(id=${statementId},query=${query},values=${values}})"
 
 }

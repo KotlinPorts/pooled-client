@@ -62,12 +62,12 @@ class MessageDecoder(val sslEnabled: Boolean, charset: Charset, val maximumMessa
 
             if (b.readableBytes() >= length) {
 
-                if (log.isTraceEnabled) {
-                    log.trace(s"Received buffer ${code}\n${BufferDumper.dumpAsHex(b)}")
-                }
+//                if (log.isTraceEnabled) {
+//                    log.trace(s"Received buffer ${code}\n${BufferDumper.dumpAsHex(b)}")
+//                }
 
-                val result = when (code) {
-                    is ServerMessage.Authentication ->
+                val result = when (code.toInt()) {
+                    ServerMessage.Authentication ->
                         AuthenticationStartupParser.parseMessage(b)
                     else ->
                         parser.parse(code, b.readSlice(length))

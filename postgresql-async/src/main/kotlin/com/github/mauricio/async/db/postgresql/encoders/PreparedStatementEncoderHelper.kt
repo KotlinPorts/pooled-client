@@ -17,19 +17,18 @@
 package com.github.mauricio.async.db.postgresql.encoders
 
 import com.github.mauricio.async.db.postgresql.messages.backend.ServerMessage
-import com.github.mauricio.async.db.util.{Log, ByteBufferUtils}
+import com.github.mauricio.async.db.util.
+import mu.KLogging
+
+{Log, ByteBufferUtils}
 import com.github.mauricio.async.db.column.ColumnEncoderRegistry
 import java.nio.charset.Charset
 import io.netty.buffer.{Unpooled, ByteBuf}
 import scala.collection.mutable.ArrayBuffer
 
-object PreparedStatementEncoderHelper {
-  final val log = Log.get[PreparedStatementEncoderHelper]
-}
-
 interface PreparedStatementEncoderHelper {
 
-  import PreparedStatementEncoderHelper.log
+  companion object: KLogging()
 
   fun writeExecutePortal(
                           statementIdBytes: Array[Byte],

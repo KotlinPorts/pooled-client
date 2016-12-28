@@ -18,56 +18,52 @@ package com.github.mauricio.async.db.postgresql.codec
 
 import com.github.mauricio.async.db.column.ColumnEncoderRegistry
 import com.github.mauricio.async.db.exceptions.EncoderNotAvailableException
-import com.github.mauricio.async.db.postgresql.encoders._
+import com.github.mauricio.async.db.postgresql.encoders.*
 import com.github.mauricio.async.db.postgresql.messages.backend.ServerMessage
-import com.github.mauricio.async.db.postgresql.messages.frontend._
-import com.github.mauricio.async.db.util.{BufferDumper, Log}
+import com.github.mauricio.async.db.postgresql.messages.frontend.*
+import com.github.mauricio.async.db.util.BufferDumper
 import java.nio.charset.Charset
-import scala.annotation.switch
 import io.netty.handler.codec.MessageToMessageEncoder
 import io.netty.channel.ChannelHandlerContext
+import mu.KLogging
 
-object MessageEncoder {
-  val log = Log.get[MessageEncoder]
-}
+class MessageEncoder(val charset: Charset, val encoderRegistry: ColumnEncoderRegistry)
+    : MessageToMessageEncoder<Any>() {
 
-class MessageEncoder(charset: Charset, encoderRegistry: ColumnEncoderRegistry) : MessageToMessageEncoder[Object] {
+    companion object : KLogging()
 
-  import MessageEncoder.log
+    private val executeEncoder = ExecutePreparedStatementEncoder(charset, encoderRegistry)
+    private val openEncoder = PreparedStatementOpeningEncoder(charset, encoderRegistry)
+    private val startupEncoder = StartupMessageEncoder(charset)
+    private val queryEncoder = QueryMessageEncoder(charset)
+    private val credentialEncoder = CredentialEncoder(charset)
 
-  private val executeEncoder = new ExecutePreparedStatementEncoder(charset, encoderRegistry)
-  private val openEncoder = new PreparedStatementOpeningEncoder(charset, encoderRegistry)
-  private val startupEncoder = new StartupMessageEncoder(charset)
-  private val queryEncoder = new QueryMessageEncoder(charset)
-  private val credentialEncoder = new CredentialEncoder(charset)
+    override fun encode(ctx: ChannelHandlerContext, message: Any, out: MutableList<Any>) {
+        val buffer = when (message) {
+            is SSLRequestMessage -> SSLMessageEncoder.encode()
+            is StartupMessage -> startupEncoder.encode(message)
+            is ClientMessage -> {
+                val encoder = when (message.kind) {
+                    ServerMessage.Close -> CloseMessageEncoder
+                    ServerMessage.Execute -> this.executeEncoder
+                    ServerMessage.Parse -> this.openEncoder
+                    ServerMessage.Query -> this.queryEncoder
+                    ServerMessage.PasswordMessage -> this.credentialEncoder
+                    else -> throw EncoderNotAvailableException(message)
+                }
 
-  override fun encode(ctx: ChannelHandlerContext, msg: AnyRef, out: java.util.List[Object]) = {
-
-    val buffer = msg match {
-      case SSLRequestMessage => SSLMessageEncoder.encode()
-      case message: StartupMessage => startupEncoder.encode(message)
-      case message: ClientMessage => {
-        val encoder = (message.kind: @switch) match {
-          case ServerMessage.Close => CloseMessageEncoder
-          case ServerMessage.Execute => this.executeEncoder
-          case ServerMessage.Parse => this.openEncoder
-          case ServerMessage.Query => this.queryEncoder
-          case ServerMessage.PasswordMessage => this.credentialEncoder
-          case _ => throw new EncoderNotAvailableException(message)
+                encoder.encode(message)
+            }
+            else -> {
+                throw IllegalArgumentException("Can not encode message %s".format(message))
+            }
         }
 
-        encoder.encode(message)
-      }
-      case _ => {
-        throw new IllegalArgumentException("Can not encode message %s".format(msg))
-      }
-    }
+//        if (log.isTraceEnabled) {
+//            log.trace(s"Sending message ${msg.getClass.getName}\n${BufferDumper.dumpAsHex(buffer)}")
+//        }
 
-    if (log.isTraceEnabled) {
-      log.trace(s"Sending message ${msg.getClass.getName}\n${BufferDumper.dumpAsHex(buffer)}")
+        out.add(buffer)
     }
-
-    out.add(buffer)
-  }
 
 }
