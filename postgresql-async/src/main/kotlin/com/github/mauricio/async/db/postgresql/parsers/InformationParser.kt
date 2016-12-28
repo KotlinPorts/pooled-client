@@ -21,27 +21,27 @@ import com.github.mauricio.async.db.util.ByteBufferUtils
 import java.nio.charset.Charset
 import io.netty.buffer.ByteBuf
 
-abstract class InformationParser(charset: Charset) : MessageParser {
+abstract class InformationParser(val charset: Charset) : MessageParser {
 
-  override fun parseMessage(b: ByteBuf): ServerMessage = {
+    override fun parseMessage(b: ByteBuf): ServerMessage {
 
-    val fields = scala.collection.mutable.Map[Char, String]()
+        val fields = mutableMapOf<Char, String>()
 
-    while (b.isReadable()) {
-      val kind = b.readByte()
+        while (b.isReadable()) {
+            val kind = b.readByte()
 
-      if (kind != 0) {
-        fields.put(
-          kind.toChar,
-          ByteBufferUtils.readCString(b, charset)
-        )
-      }
+            if (kind != 0.toByte()) {
+                fields.put(
+                        kind.toChar(),
+                        ByteBufferUtils.readCString(b, charset)
+                )
+            }
 
+        }
+
+        return createMessage(fields.toMap())
     }
 
-    createMessage(fields.toMap)
-  }
-
-  fun createMessage(fields: Map[Char, String]): ServerMessage
+    abstract fun createMessage(fields: Map<Char, String>): ServerMessage
 
 }

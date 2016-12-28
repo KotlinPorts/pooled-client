@@ -110,7 +110,7 @@ abstract class AbstractURIParser {
      * @param charset the charset passed in to parse or parseOrDie.
      * @return
      */
-    protected fun assembleConfiguration(properties: Map<String, String>, charset: Charset): Configuration =
+    protected open fun assembleConfiguration(properties: Map<String, String>, charset: Charset): Configuration =
             DEFAULT.copy(
                     username = properties.getOrDefault(USERNAME, DEFAULT.username),
                     password = properties.get(PASSWORD),
@@ -161,7 +161,7 @@ abstract class AbstractURIParser {
      * This method breaks out handling of the jdbc: prefixed uri's, allowing them to be handled differently
      * without reimplementing all of parse.
      */
-    protected fun handleJDBC(uri: URI): Map<String, String> =
+    protected open fun handleJDBC(uri: URI): Map<String, String> =
             parse(URI(uri.getSchemeSpecificPart()))
 
     protected fun unwrapIpv6address(server: String): String =

@@ -16,91 +16,85 @@
 package com.github.mauricio.async.db.postgresql.util
 
 import com.github.mauricio.async.db.postgresql.exceptions.InvalidArrayException
-import com.github.mauricio.async.db.util.Log
-import scala.collection.mutable
-import scala.collection.mutable.StringBuilder
+import mu.KLogging
 
-object ArrayStreamingParser {
+object ArrayStreamingParser : KLogging() {
 
-  val log = Log.getByName(ArrayStreamingParser.getClass.getName)
+    fun parse(content: String, delegate: ArrayStreamingParserDelegate) {
 
-  fun parse(content: String, delegate: ArrayStreamingParserDelegate) {
+        var index = 0
+        var escaping = false
+        var quoted = false
+        var currentElement: StringBuilder? = null
+        var opens = 0
+        var closes = 0
 
-    var index = 0
-    var escaping = false
-    var quoted = false
-    var currentElement: StringBuilder = null
-    var opens = 0
-    var closes = 0
+        while (index < content.length) {
+            val char = content[index]
 
-    while (index < content.size) {
-      val char = content.charAt(index)
-
-      if (escaping) {
-        currentElement.append(char)
-        escaping = false
-      } else {
-        char match {
-          case '{' if !quoted => {
-            delegate.arrayStarted
-            opens += 1
-          }
-          case '}' if !quoted => {
-            if (currentElement != null) {
-              sendElementEvent(currentElement, quoted, delegate)
-              currentElement = null
-            }
-            delegate.arrayEnded
-            closes += 1
-          }
-          case '"' => {
-            if (quoted) {
-              sendElementEvent(currentElement, quoted, delegate)
-              currentElement = null
-              quoted = false
+            if (escaping) {
+                currentElement!!.append(char)
+                escaping = false
             } else {
-              quoted = true
-              currentElement = new mutable.StringBuilder()
+                if (char == '{' && !quoted) {
+                    delegate.arrayStarted()
+                    opens += 1
+
+                } else if (char == '}' && !quoted) {
+                    if (currentElement != null) {
+                        sendElementEvent(currentElement!!, quoted, delegate)
+                        currentElement = null
+                    }
+                    delegate.arrayEnded()
+                    closes += 1
+                } else
+                    when (char) {
+                        '"' -> {
+                            if (quoted) {
+                                sendElementEvent(currentElement!!, quoted, delegate)
+                                currentElement = null
+                                quoted = false
+                            } else {
+                                quoted = true
+                                currentElement = StringBuilder()
+                            }
+                        }
+                        ',' -> {
+                            if (currentElement != null) {
+                                sendElementEvent(currentElement!!, quoted, delegate)
+                            }
+                            currentElement = null
+                        }
+                        '\\' -> {
+                            escaping = true
+                        }
+                        else -> {
+                            if (currentElement == null) {
+                                currentElement = StringBuilder()
+                            }
+                            currentElement.append(char)
+                        }
+                    }
             }
-          }
-          case ',' if !quoted => {
-            if (currentElement != null) {
-              sendElementEvent(currentElement, quoted, delegate)
-            }
-            currentElement = null
-          }
-          case '\\' => {
-            escaping = true
-          }
-          case _ => {
-            if (currentElement == null) {
-              currentElement = new mutable.StringBuilder()
-            }
-            currentElement.append(char)
-          }
+
+            index += 1
         }
-      }
 
-      index += 1
+        if (opens != closes) {
+            throw InvalidArrayException("This array is unbalanced %s".format(content))
+        }
+
     }
 
-    if (opens != closes) {
-      throw new InvalidArrayException("This array is unbalanced %s".format(content))
+    fun sendElementEvent(builder: StringBuilder, quoted: Boolean, delegate: ArrayStreamingParserDelegate) {
+
+        val value = builder.toString()
+
+        return if (!quoted && "NULL".equals(value, ignoreCase = true)) {
+            delegate.nullElementFound()
+        } else {
+            delegate.elementFound(value)
+        }
+
     }
-
-  }
-
-  fun sendElementEvent(builder: mutable.StringBuilder, quoted: Boolean, delegate: ArrayStreamingParserDelegate) {
-
-    val value = builder.toString()
-
-    if (!quoted && "NULL".equalsIgnoreCase(value)) {
-      delegate.nullElementFound
-    } else {
-      delegate.elementFound(value)
-    }
-
-  }
-
-
 }
