@@ -16,16 +16,14 @@
 
 package com.github.mauricio.async.db.postgresql.parsers
 
-import language.implicitConversions
 import java.nio.charset.Charset
 import io.netty.buffer.ByteBuf
-import com.github.mauricio.async.db.postgresql.messages.backend.{NotificationResponse, ServerMessage}
-import com.github.mauricio.async.db.util.ChannelWrapper.bufferToWrapper
+import com.github.mauricio.async.db.postgresql.messages.backend.NotificationResponse
+import com.github.mauricio.async.db.postgresql.messages.backend.ServerMessage
+import com.github.mauricio.async.db.util.ChannelWrapper.Companion.bufferToWrapper
 
-class NotificationResponseParser( charset : Charset ) : MessageParser {
+class NotificationResponseParser( val charset : Charset ) : MessageParser {
 
-  fun parseMessage(buffer: ByteBuf): ServerMessage = {
-    new NotificationResponse( buffer.readInt(), buffer.readCString(charset), buffer.readCString(charset) )
-  }
-
+  override fun parseMessage(buffer: ByteBuf): ServerMessage =
+     NotificationResponse( buffer.readInt(), bufferToWrapper(buffer).readCString(charset), bufferToWrapper(buffer).readCString(charset) )
 }

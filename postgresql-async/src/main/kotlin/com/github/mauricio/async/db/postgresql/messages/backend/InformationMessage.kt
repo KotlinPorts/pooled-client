@@ -16,8 +16,8 @@
 
 package com.github.mauricio.async.db.postgresql.messages.backend
 
-abstract class InformationMessage(messageType: Byte, val fields: Map<Char, String>)
-    : ServerMessage(messageType.toInt()) {
+abstract class InformationMessage(messageType: Int, val fields: Map<Char, String>)
+    : ServerMessage(messageType) {
 
     companion object {
         val Severity = 'S'

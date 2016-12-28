@@ -16,17 +16,15 @@
 
 package com.github.mauricio.async.db.postgresql.parsers
 
-import com.github.mauricio.async.db.postgresql.messages.backend.{ParameterStatusMessage, ServerMessage}
-import com.github.mauricio.async.db.util.ByteBufferUtils
+import com.github.mauricio.async.db.postgresql.messages.backend.ParameterStatusMessage
+import com.github.mauricio.async.db.postgresql.messages.backend.ServerMessage
+import com.github.mauricio.async.db.util.ByteBufferUtils.readCString
 import java.nio.charset.Charset
 import io.netty.buffer.ByteBuf
 
-class ParameterStatusParser(charset: Charset) : MessageParser {
+class ParameterStatusParser(val charset: Charset) : MessageParser {
 
-  import ByteBufferUtils._
-
-  override fun parseMessage(b: ByteBuf): ServerMessage = {
-    new ParameterStatusMessage(readCString(b, charset), readCString(b, charset))
-  }
+    override fun parseMessage(b: ByteBuf): ServerMessage =
+            ParameterStatusMessage(readCString(b, charset), readCString(b, charset))
 
 }

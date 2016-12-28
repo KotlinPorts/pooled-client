@@ -16,21 +16,21 @@
 
 package com.github.mauricio.async.db.postgresql.parsers
 
-import com.github.mauricio.async.db.postgresql.messages.backend._
+import com.github.mauricio.async.db.postgresql.messages.backend.*
 import io.netty.buffer.ByteBuf
-
-object ReturningMessageParser {
-
-  val BindCompleteMessageParser = new ReturningMessageParser(BindComplete)
-  val CloseCompleteMessageParser = new ReturningMessageParser(CloseComplete)
-  val EmptyQueryStringMessageParser = new ReturningMessageParser(EmptyQueryString)
-  val NoDataMessageParser = new ReturningMessageParser(NoData)
-  val ParseCompleteMessageParser = new ReturningMessageParser(ParseComplete)
-
-}
 
 class ReturningMessageParser(val message: ServerMessage) : MessageParser {
 
-  fun parseMessage(buffer: ByteBuf): ServerMessage = this.message
+    companion object {
+
+        val BindCompleteMessageParser = ReturningMessageParser(BindComplete)
+        val CloseCompleteMessageParser = ReturningMessageParser(CloseComplete)
+        val EmptyQueryStringMessageParser = ReturningMessageParser(EmptyQueryString)
+        val NoDataMessageParser = ReturningMessageParser(NoData)
+        val ParseCompleteMessageParser = ReturningMessageParser(ParseComplete)
+
+    }
+
+    override fun parseMessage(buffer: ByteBuf): ServerMessage = this.message
 
 }
