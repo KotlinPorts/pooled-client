@@ -16,34 +16,31 @@
 
 package com.github.mauricio.async.db.postgresql.encoders
 
-import com.github.mauricio.async.db.postgresql.messages.frontend.{ClientMessage, StartupMessage}
+import com.github.mauricio.async.db.postgresql.messages.frontend.ClientMessage
+import com.github.mauricio.async.db.postgresql.messages.frontend.StartupMessage
 import com.github.mauricio.async.db.util.ByteBufferUtils
 import java.nio.charset.Charset
-import io.netty.buffer.{Unpooled, ByteBuf}
+import io.netty.buffer.Unpooled
+import io.netty.buffer.ByteBuf
 
-class StartupMessageEncoder(charset: Charset) {
+class StartupMessageEncoder(val charset: Charset) {
 
   //private val log = Log.getByName("StartupMessageEncoder")
 
-  fun encode(startup: StartupMessage): ByteBuf = {
+  fun encode(startup: StartupMessage): ByteBuf {
 
     val buffer = Unpooled.buffer()
     buffer.writeInt(0)
     buffer.writeShort(3)
     buffer.writeShort(0)
 
-    startup.parameters.foreach {
-      pair =>
-        pair._2 match {
-          case value: String => {
-            ByteBufferUtils.writeCString(pair._1, buffer, charset)
+    startup.parameters.forEach {
+      (key, value) ->
+        when (value) {
+          is String -> {
+            ByteBufferUtils.writeCString(key, buffer, charset)
             ByteBufferUtils.writeCString(value, buffer, charset)
           }
-          case Some(value) => {
-            ByteBufferUtils.writeCString(pair._1, buffer, charset)
-            ByteBufferUtils.writeCString(value.toString, buffer, charset)
-          }
-          case _ => {}
         }
     }
 
@@ -56,7 +53,7 @@ class StartupMessageEncoder(charset: Charset) {
     buffer.writeInt(index)
     buffer.resetWriterIndex()
 
-    buffer
+    return buffer
   }
 
 }

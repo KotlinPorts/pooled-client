@@ -18,11 +18,10 @@ package com.github.mauricio.async.db.postgresql.exceptions
 
 import com.github.mauricio.async.db.exceptions.DatabaseException
 
-object ByteArrayFormatNotSupportedException {
-
-  final val Message = """The bytea 'escape' format is not yet supported, you need to use a PG version that uses the 'hex' format (version 9 and onwards)"""
-
-}
-
 class ByteArrayFormatNotSupportedException
-  : DatabaseException( ByteArrayFormatNotSupportedException.Message )
+    : DatabaseException(ByteArrayFormatNotSupportedException.Message) {
+    companion object {
+        val Message = """The bytea 'escape' format is not yet supported, you need to use a PG version that uses the 'hex' format (version 9 and onwards)"""
+
+    }
+}

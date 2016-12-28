@@ -31,7 +31,7 @@ class QueryMessageEncoder(val charset: Charset) : Encoder {
 
   override fun encode(message: ClientMessage): ByteBuf {
 
-    val m = (message as QueryMessage)!!
+    val m = message as QueryMessage
 
 //    if ( log.isDebugEnabled ) {
 //      log.debug("Executing direct query ({})", m.query)

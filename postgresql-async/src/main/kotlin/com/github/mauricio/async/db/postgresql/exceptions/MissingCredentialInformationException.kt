@@ -22,8 +22,8 @@ import com.github.mauricio.async.db.postgresql.messages.backend.AuthenticationRe
 
 class MissingCredentialInformationException(
                                              val username: String,
-                                             val password: Option[String],
-                                             val authenticationResponseType: AuthenticationResponseType.AuthenticationResponseType)
+                                             val password: String?,
+                                             val authenticationResponseType: AuthenticationResponseType)
   : DatabaseException(
     "Username and password were required by auth type %s but are not available (username=[%s] password=[%s]".format(
       authenticationResponseType,

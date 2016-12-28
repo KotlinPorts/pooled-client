@@ -26,43 +26,42 @@ import io.netty.buffer.Unpooled
 import io.netty.buffer.ByteBuf
 import mu.KLogging
 
-class PreparedStatementOpeningEncoder(charset: Charset, encoder : ColumnEncoderRegistry)
-  : Encoder, PreparedStatementEncoderHelper
-{
-  companion object: KLogging()
+class PreparedStatementOpeningEncoder(val charset: Charset, val encoder: ColumnEncoderRegistry)
+    : Encoder, PreparedStatementEncoderHelper {
+    companion object : KLogging()
 
-  override fun encode(message: ClientMessage): ByteBuf {
+    override fun encode(message: ClientMessage): ByteBuf {
 
-    val m = (message as PreparedStatementOpeningMessage)!!
+        val m = message as PreparedStatementOpeningMessage
 
-    val statementIdBytes = m.statementId.toString.getBytes(charset)
-    val columnCount = m.valueTypes.size
+        val statementIdBytes = m.statementId.toString().toByteArray(charset)
+        val columnCount = m.valueTypes.size
 
-    val parseBuffer = Unpooled.buffer(1024)
+        val parseBuffer = Unpooled.buffer(1024)
 
-    parseBuffer.writeByte(ServerMessage.Parse)
-    parseBuffer.writeInt(0)
+        parseBuffer.writeByte(ServerMessage.Parse)
+        parseBuffer.writeInt(0)
 
-    parseBuffer.writeBytes(statementIdBytes)
-    parseBuffer.writeByte(0)
-    parseBuffer.writeBytes(m.query.getBytes(charset))
-    parseBuffer.writeByte(0)
+        parseBuffer.writeBytes(statementIdBytes)
+        parseBuffer.writeByte(0)
+        parseBuffer.writeBytes(m.query.toByteArray(charset))
+        parseBuffer.writeByte(0)
 
-    parseBuffer.writeShort(columnCount)
+        parseBuffer.writeShort(columnCount)
 
-    if ( log.isDebugEnabled ) {
-      log.debug(s"Opening query (${m.query}) - statement id (${statementIdBytes.mkString("-")}) - selected types (${m.valueTypes.mkString(", ")}) - values (${m.values.mkString(", ")})")
+//    if ( log.isDebugEnabled ) {
+//      log.debug(s"Opening query (${m.query}) - statement id (${statementIdBytes.mkString("-")}) - selected types (${m.valueTypes.mkString(", ")}) - values (${m.values.mkString(", ")})")
+//    }
+
+        for (kind in m.valueTypes) {
+            parseBuffer.writeInt(kind)
+        }
+
+        ByteBufferUtils.writeLength(parseBuffer)
+
+        val executeBuffer = writeExecutePortal(statementIdBytes, m.query, m.values, encoder, charset, true)
+
+        return Unpooled.wrappedBuffer(parseBuffer, executeBuffer)
     }
-
-    for (kind <- m.valueTypes) {
-      parseBuffer.writeInt(kind)
-    }
-
-    ByteBufferUtils.writeLength(parseBuffer)
-
-    val executeBuffer = writeExecutePortal(statementIdBytes, m.query, m.values, encoder, charset, true)
-
-    Unpooled.wrappedBuffer(parseBuffer, executeBuffer)
-  }
 
 }

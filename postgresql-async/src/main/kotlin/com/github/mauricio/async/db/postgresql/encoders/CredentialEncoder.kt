@@ -16,41 +16,45 @@
 
 package com.github.mauricio.async.db.postgresql.encoders
 
-import com.github.mauricio.async.db.postgresql.messages.backend.{ServerMessage, AuthenticationResponseType}
-import com.github.mauricio.async.db.postgresql.messages.frontend.{CredentialMessage, ClientMessage}
+import com.github.mauricio.async.db.postgresql.messages.backend.ServerMessage
+import com.github.mauricio.async.db.postgresql.messages.backend.AuthenticationResponseType
+import com.github.mauricio.async.db.postgresql.messages.frontend.CredentialMessage
+import com.github.mauricio.async.db.postgresql.messages.frontend.ClientMessage
 import com.github.mauricio.async.db.postgresql.util.PasswordHelper
 import com.github.mauricio.async.db.util.ByteBufferUtils
 import java.nio.charset.Charset
-import io.netty.buffer.{Unpooled, ByteBuf}
+import io.netty.buffer.Unpooled
+import io.netty.buffer.ByteBuf
 
-class CredentialEncoder(charset: Charset) : Encoder {
+class CredentialEncoder(val charset: Charset) : Encoder {
 
-  fun encode(message: ClientMessage): ByteBuf = {
+    override fun encode(message: ClientMessage): ByteBuf {
 
-    val credentialMessage = message.asInstanceOf[CredentialMessage]
+        val credentialMessage = message as CredentialMessage
 
-    val password = credentialMessage.authenticationType match {
-      case AuthenticationResponseType.Cleartext => {
-        credentialMessage.password.getBytes(charset)
-      }
-      case AuthenticationResponseType.MD5 => {
-        PasswordHelper.encode(
-          credentialMessage.username,
-          credentialMessage.password,
-          credentialMessage.salt.get,
-          charset)
-      }
+        val password = when (credentialMessage.authenticationType) {
+            AuthenticationResponseType.Cleartext -> {
+                credentialMessage.password.toByteArray(charset)
+            }
+            AuthenticationResponseType.MD5 -> {
+                PasswordHelper.encode(
+                        credentialMessage.username,
+                        credentialMessage.password,
+                        credentialMessage.salt!!,
+                        charset)
+            }
+            else -> ByteArray(0)
+        }
+
+        val buffer = Unpooled.buffer(1 + 4 + password.size + 1)
+        buffer.writeByte(ServerMessage.PasswordMessage)
+        buffer.writeInt(0)
+        buffer.writeBytes(password)
+        buffer.writeByte(0)
+
+        ByteBufferUtils.writeLength(buffer)
+
+        return buffer
     }
-
-    val buffer = Unpooled.buffer(1 + 4 + password.size + 1)
-    buffer.writeByte(ServerMessage.PasswordMessage)
-    buffer.writeInt(0)
-    buffer.writeBytes(password)
-    buffer.writeByte(0)
-
-    ByteBufferUtils.writeLength(buffer)
-
-    buffer
-  }
 
 }

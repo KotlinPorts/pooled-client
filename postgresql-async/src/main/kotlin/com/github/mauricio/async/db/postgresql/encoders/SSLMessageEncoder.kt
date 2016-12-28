@@ -5,12 +5,11 @@ import io.netty.buffer.Unpooled
 
 object SSLMessageEncoder {
 
-  fun encode(): ByteBuf = {
-    val buffer = Unpooled.buffer()
-    buffer.writeInt(8)
-    buffer.writeShort(1234)
-    buffer.writeShort(5679)
-    buffer
-  }
+    fun encode(): ByteBuf = Unpooled.buffer().let {
+        it.writeInt(8)
+        it.writeShort(1234)
+        it.writeShort(5679)
+        it
+    }
 
 }

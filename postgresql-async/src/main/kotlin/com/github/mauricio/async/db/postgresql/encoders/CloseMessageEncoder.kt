@@ -17,16 +17,17 @@
 package com.github.mauricio.async.db.postgresql.encoders
 
 import com.github.mauricio.async.db.postgresql.messages.frontend.ClientMessage
-import io.netty.buffer.{Unpooled, ByteBuf}
+import io.netty.buffer.Unpooled
+import io.netty.buffer.ByteBuf
 
 object CloseMessageEncoder : Encoder {
 
-  override fun encode(message: ClientMessage): ByteBuf = {
+  override fun encode(message: ClientMessage): ByteBuf {
     val buffer = Unpooled.buffer(5)
-    buffer.writeByte('X')
+    buffer.writeByte('X'.toInt())
     buffer.writeInt(4)
 
-    buffer
+    return buffer
   }
 
 }
