@@ -29,19 +29,15 @@ data class Version(val major: Int, val minor: Int, val maintenance: Int) : Compa
     constructor(pieces: Array<String>) :
             this(tryParse(0, pieces), tryParse(1, pieces), tryParse(2, pieces))
 
-    override fun compareTo(y: Version): Int {
-        if (this == y) {
-            return 0
+    override fun compareTo(other: Version): Int {
+        if (this.major != other.major) {
+            return this.major - other.major
         }
 
-        if (this.major != y.major) {
-            return this.major - y.major
+        if (this.minor != other.minor) {
+            return this.minor - other.minor
         }
 
-        if (this.minor != y.minor) {
-            return this.minor - y.minor
-        }
-
-        return this.maintenance - y.maintenance
+        return this.maintenance - other.maintenance
     }
 }

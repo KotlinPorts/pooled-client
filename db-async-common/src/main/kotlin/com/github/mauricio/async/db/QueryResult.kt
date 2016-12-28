@@ -25,10 +25,9 @@ package com.github.mauricio.async.db
  * @param rows
  */
 
-class QueryResult(val rowsAffected: Long, val statusMessage: String, val rows: Option[ResultSet] = None) {
+class QueryResult(val rowsAffected: Long, val statusMessage: String, val rows: ResultSet? = null) {
 
-  override fun toString: String = {
+  override fun toString(): String =
     "QueryResult{rows -> %s,status -> %s}".format(this.rowsAffected, this.statusMessage)
-  }
 
 }

@@ -16,33 +16,29 @@
 
 package com.github.mauricio.async.db.general
 
-import collection.mutable.ArrayBuffer
-import com.github.mauricio.async.db.{RowData, ResultSet}
-import com.github.mauricio.async.db.util.Log
+import com.github.mauricio.async.db.RowData
+import com.github.mauricio.async.db.ResultSet
+import mu.KLogging
 
-object MutableResultSet {
-  val log = Log.get[MutableResultSet[Nothing]]
-}
+class MutableResultSet<T : ColumnData>(
+        val columnTypes: List<T>) : ResultSet {
 
-class MutableResultSet[T <: ColumnData](
-                        val columnTypes: IndexedSeq[T]) :  ResultSet {
+    companion object : KLogging()
 
-  private val rows = new ArrayBuffer[RowData]()
-  private val columnMapping: Map[String, Int] = this.columnTypes.indices.map(
-    index =>
-      ( this.columnTypes(index).name, index ) ).toMap
+    private val rows = mutableListOf<RowData>()
+    private val columnMapping: Map<String, Int> = this.columnTypes
+            .mapIndexed({ i, t -> Pair(t.name, i) }).toMap()
 
+    override val columnNames: List<String> get() = columnTypes.map { it.name }
 
-  val columnNames : IndexedSeq[String] = this.columnTypes.map(c => c.name)
+    val types: List<Int> get() = this.columnTypes.map { it.dataType }
 
-  val types : IndexedSeq[Int] = this.columnTypes.map(c => c.dataType)
+    val size: Int get() = this.rows.size
 
-  override fun length: Int = this.rows.length
+    override operator fun get(rowNumber: Int): RowData = rows[rowNumber]!!
 
-  override fun apply(idx: Int): RowData = this.rows(idx)
+    override fun iterator(): Iterator<RowData> = rows.iterator()
 
-  fun addRow(row : Array[Any] ) {
-    this.rows += new ArrayRowData(this.rows.size, this.columnMapping, row)
-  }
-
+    fun addRow(row: Array<Any?>) =
+        rows.add(ArrayRowData(this.rows.size, this.columnMapping, row))
 }

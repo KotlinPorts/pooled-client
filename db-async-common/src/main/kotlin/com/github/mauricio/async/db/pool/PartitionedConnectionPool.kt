@@ -1,33 +1,37 @@
 package com.github.mauricio.async.db.pool
 
+import com.github.elizarov.async.suspendable
 import com.github.mauricio.async.db.util.ExecutorServiceUtils
-import com.github.mauricio.async.db.{ QueryResult, Connection }
-import scala.concurrent.{ ExecutionContext, Future }
+import com.github.mauricio.async.db.QueryResult
+import com.github.mauricio.async.db.Connection
+import kotlin.coroutines.suspendCoroutine
 
-class PartitionedConnectionPool[T <: Connection](
-    factory: ObjectFactory[T],
-    configuration: PoolConfiguration,
-    numberOfPartitions: Int,
-    executionContext: ExecutionContext = ExecutorServiceUtils.CachedExecutionContext)
-    :  PartitionedAsyncObjectPool[T](factory, configuration, numberOfPartitions)
-    with Connection {
+class PartitionedConnectionPool<T : Connection>(
+        factory: ObjectFactory<T>,
+        configuration: PoolConfiguration,
+        numberOfPartitions: Int)
+    : PartitionedAsyncObjectPool<T>(factory, configuration, numberOfPartitions), Connection {
 
-    fun disconnect: Future[Connection] = if (this.isConnected) {
-        this.close.map(item => this)(executionContext)
-    } else {
-        Future.successful(this)
+    override suspend fun disconnect(): Connection = suspendable {
+        if (isConnected) {
+            close()
+        }
+        this@PartitionedConnectionPool
     }
 
-    fun connect: Future[Connection] = Future.successful(this)
+    override suspend fun connect(): Connection = suspendCoroutine {
+        cont ->
+        cont.resume(this)
+    }
 
-    fun isConnected: Boolean = !this.isClosed
+    override val isConnected: Boolean get() = !this.isClosed()
 
-    fun sendQuery(query: String): Future[QueryResult] =
-        this.use(_.sendQuery(query))(executionContext)
+    override suspend fun sendQuery(query: String): QueryResult =
+        this.use { sendQuery(query) }
 
-    fun sendPreparedStatement(query: String, values: Seq[Any] = List()): Future[QueryResult] =
-        this.use(_.sendPreparedStatement(query, values))(executionContext)
+    override suspend fun sendPreparedStatement(query: String, values: List<Any?>): QueryResult =
+        this.use { sendPreparedStatement(query, values) }
 
-    override fun inTransaction[A](f: Connection => Future[A])(implicit context: ExecutionContext = executionContext): Future[A] =
-        this.use(_.inTransaction[A](f)(context))(executionContext)
+    override suspend fun <A> inTransaction(f: suspend (conn: Connection) -> A) =
+        this.use { it.inTransaction(f) }
 }

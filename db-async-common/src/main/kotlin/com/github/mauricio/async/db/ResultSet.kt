@@ -23,7 +23,8 @@ package com.github.mauricio.async.db
  *
  */
 
-interface ResultSet :  IndexedSeq[RowData] {
+//TODO: make IndexedSequence here too
+interface ResultSet : Iterable<RowData> {
 
   /**
    *
@@ -32,6 +33,8 @@ interface ResultSet :  IndexedSeq[RowData] {
    * @return
    */
 
-  fun columnNames : IndexedSeq[String]
+  val columnNames : List<String>
+
+  operator fun get(rowNumber: Int): RowData
 
 }

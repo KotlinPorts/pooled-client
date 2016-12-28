@@ -18,8 +18,8 @@ package com.github.mauricio.async.db.general
 
 interface ColumnData {
 
-  fun name : String
-  fun dataType : Int
-  fun dataTypeSize : Long
+  val name : String
+  val dataType : Int
+  val dataTypeSize : Long
 
 }

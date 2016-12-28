@@ -22,87 +22,88 @@ package com.github.mauricio.async.db.util
 
 object HexCodec {
 
-  private final val Digits = Array[Char]('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F')
+    private final val Digits = charArrayOf('0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F')
 
-  private fun toDigit( ch : Char, index : Int ) : Int = {
-    val digit = Character.digit( ch, 16 )
+    private fun toDigit(ch: Char, index: Int): Int {
+        val digit = Character.digit(ch, 16)
 
-    if ( digit == -1 ) {
-      throw new IllegalArgumentException("Illegal hexadecimal character " + ch + " at index " + index);
+        if (digit == -1) {
+            throw IllegalArgumentException("Illegal hexadecimal character " + ch + " at index " + index);
+        }
+
+        return digit
     }
 
-    return digit
-  }
+    /**
+     *
+     * Turns a HEX based char sequence into a Byte array
+     *
+     * @param value
+     * @param start
+     * @return
+     */
 
-  /**
-   *
-   * Turns a HEX based char sequence into a Byte array
-   *
-   * @param value
-   * @param start
-   * @return
-   */
+    fun decode(value: CharSequence, start: Int = 0): ByteArray {
 
-  fun decode( value : CharSequence, start : Int = 0 ) : Array[Byte] = {
+        val length = value.length - start
+        val end = value.length
 
-    val length = value.length - start
-    val end = value.length()
+        if ((length and 0x01) != 0) {
+            throw IllegalArgumentException("Odd number of characters. A hex encoded byte array has to be even.")
+        }
 
-    if ( (length & 0x01) != 0 ) {
-      throw new IllegalArgumentException("Odd number of characters. A hex encoded byte array has to be even.")
+        val out = ByteArray(length shr 1)
+
+        var i = 0
+        var j = start
+
+        while (j < end) {
+            var f = toDigit(value[j], j) shl 4
+            j += 1
+            f = f or toDigit(value[j], j)
+            j += 1
+            out[i] = (f and 0xff).toByte()
+            i += 1
+        }
+
+        return out
     }
 
-    val out = new Array[Byte](length >> 1)
+    /**
+     *
+     * Encodes a byte array into a String encoded with Hex values.
+     *
+     * @param bytes
+     * @param prefix
+     * @return
+     */
 
-    var i = 0
-    var j = start
+    fun encode(bytes: ByteArray, prefix : CharArray? = null ) : String
+    {
+        val length = (bytes.size * 2) + (prefix?.size?:0)
+        val chars = CharArray(length)
 
-    while ( j < end ) {
-      var f = toDigit(value.charAt(j), j) << 4
-      j += 1
-      f = f | toDigit(value.charAt(j), j)
-      j += 1
-      out(i) = (f & 0xff).asInstanceOf[Byte]
-      i += 1
+        if (prefix != null) {
+            var x = 0
+            while (x < prefix.size) {
+                chars[x] = prefix[x]
+                x += 1
+            }
+        }
+
+        val dataLength = bytes.size
+        var j = prefix?.size ?: 0
+        var i = 0
+
+        while (i < dataLength) {
+            chars[j] = Digits[(0xF0 and bytes[i].toInt()) shr 4]
+            j += 1
+            chars[j] = Digits[0x0F and bytes[i].toInt()]
+            j += 1
+            i += 1
+        }
+
+        return String (chars)
     }
-
-    out
-  }
-
-  /**
-   *
-   * Encodes a byte array into a String encoded with Hex values.
-   *
-   * @param bytes
-   * @param prefix
-   * @return
-   */
-
-  fun encode( bytes : Array[Byte], prefix : Array[Char] = Array.empty ) : String = {
-    val length = (bytes.length * 2) + prefix.length
-    val chars = new Array[Char](length)
-
-    if ( prefix.length != 0 ) {
-      var x = 0
-      while ( x < prefix.length ) {
-        chars(x) = prefix(x)
-        x += 1
-      }
-    }
-
-    val dataLength = bytes.length
-    var j = prefix.length
-    var i = 0
-
-    while ( i < dataLength ) {
-      chars(j) = Digits(( 0xF0 & bytes(i)) >>> 4 )
-      j += 1
-      chars(j) = Digits( 0x0F & bytes(i) )
-      j += 1
-      i += 1
-    }
-
-    new String(chars)
-  }
 
 }

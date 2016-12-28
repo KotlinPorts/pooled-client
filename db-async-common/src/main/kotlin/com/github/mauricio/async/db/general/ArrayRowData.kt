@@ -18,7 +18,7 @@ package com.github.mauricio.async.db.general
 
 import com.github.mauricio.async.db.RowData
 
-class ArrayRowData(val row: Int, val mapping: Map<String, Int>, val columns: Array<Any>) : RowData {
+class ArrayRowData(val row: Int, val mapping: Map<String, Int>, val columns: Array<Any?>) : RowData {
     override fun iterator(): Iterator<Any?> = columns.iterator()
 
     val size: Int

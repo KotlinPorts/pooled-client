@@ -16,14 +16,16 @@
 
 package com.github.mauricio.async.db.util
 
-import scala.concurrent.{Await, Future}
-import scala.concurrent.duration._
-import scala.language.postfixOps
+//TODO: this is not needed, we'll use waitTimeout
 
-object FutureUtils {
-
-  fun awaitFuture[T]( future : Future[T] ) : T = {
-    Await.result(future, 5 seconds )
-  }
-
-}
+//import scala.concurrent.{Await, Future}
+//import scala.concurrent.duration._
+//import scala.language.postfixOps
+//
+//object FutureUtils {
+//
+//  fun awaitFuture[T]( future : Future[T] ) : T = {
+//    Await.result(future, 5 seconds )
+//  }
+//
+//}

@@ -17,17 +17,16 @@
 package com.github.mauricio.async.db.util
 
 import io.netty.buffer.ByteBuf
+import mu.KLogging
 
-object PrintUtils {
+object PrintUtils : KLogging() {
 
-  private val log = Log.getByName(this.getClass.getName)
-
-  fun printArray( name : String, buffer : ByteBuf ) {
-    buffer.markReaderIndex()
-    val bytes = new Array[Byte](buffer.readableBytes())
-    buffer.readBytes(bytes)
-    buffer.resetReaderIndex()
-    log.debug( s"$name Array[Byte](${bytes.mkString(", ")})" )
-  }
+    fun printArray(name: String, buffer: ByteBuf) {
+        buffer.markReaderIndex()
+        val bytes = ByteArray(buffer.readableBytes())
+        buffer.readBytes(bytes)
+        buffer.resetReaderIndex()
+        logger.debug("$name Array[Byte](${bytes.joinToString(", ")})")
+    }
 
 }

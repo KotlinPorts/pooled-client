@@ -4,7 +4,7 @@ import com.github.elizarov.async.suspendable
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.Continuation
 
-class PartitionedAsyncObjectPool<T>(
+open class PartitionedAsyncObjectPool<T>(
     val factory: ObjectFactory<T>,
     val configuration: PoolConfiguration,
     val numberOfPartitions: Int)

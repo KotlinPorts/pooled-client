@@ -48,8 +48,6 @@ abstract class AbstractURIParser {
      * @return a tuple of optional username and password
      */
     protected fun parseUserInfo(userInfo: String?): Pair<String?, String?> {
-        //TODO: WTF
-        //userInfo?.split(":", false, 2)
         if (userInfo == null || userInfo.isBlank()) return Pair(null, null)
         val k = userInfo.indexOf(':')
         if (k >= 0) {
