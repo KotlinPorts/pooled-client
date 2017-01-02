@@ -181,6 +181,12 @@ open class SingleThreadedAsyncObjectPool<T>(
         }
     }
 
+    /**
+     * popelyshev:
+     *
+     * We assume that all methods that are calle from the worker
+     * will call this method, that's why it acts like a dispatcher
+     */
     private fun checkout(cont: Continuation<T>) {
         mainPool.action {
             if (this.isFull()) {

@@ -18,6 +18,8 @@ package com.github.mauricio.async.db.util
 
 import mu.KLogging
 import java.util.concurrent.ExecutorService
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.ContinuationDispatcher
 import kotlin.coroutines.startCoroutine
 import kotlin.coroutines.suspendCoroutine
 
@@ -27,7 +29,14 @@ class Worker(val executorService: ExecutorService) {
 
     companion object : KLogging()
 
-    //TODO: make it as dispatcher
+    //TODO: write dispatcher for this worker
+
+    /**
+     * popelyshev:
+     *
+     * For now we assume that everything will be done inside this executorService
+     * The only async thing inside will be "checkout" method which actually acts as our dispatcher
+     */
     suspend fun <A> act(f: suspend () -> A) = suspendCoroutine<A> {
         cont ->
         executorService.execute({

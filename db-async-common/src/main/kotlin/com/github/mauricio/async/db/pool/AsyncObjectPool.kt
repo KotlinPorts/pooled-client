@@ -17,6 +17,7 @@
 package com.github.mauricio.async.db.pool
 
 import com.github.elizarov.async.suspendable
+import kotlin.coroutines.ContinuationDispatcher
 
 /**
  *
@@ -71,7 +72,7 @@ interface AsyncObjectPool<T> {
      */
 
     //sorry, no use here
-    suspend fun <A> use(f: suspend (t: T) -> A) : A = suspendable {
+    suspend fun <A> use(dispatcher: ContinuationDispatcher? = null, f: suspend (t: T) -> A) : A = suspendable(dispatcher) {
         val item = take()
 
         try {

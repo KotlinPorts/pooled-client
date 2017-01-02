@@ -17,6 +17,7 @@
 package com.github.mauricio.async.db
 
 import com.github.elizarov.async.suspendable
+import kotlin.coroutines.ContinuationDispatcher
 
 /**
  *
@@ -124,7 +125,8 @@ interface Connection {
      * @return result of f, conditional on transaction operations succeeding
      */
 
-    suspend fun <A> inTransaction(f: suspend (conn: Connection) -> A) = suspendable<A> {
+    suspend fun <A> inTransaction(dispatcher: ContinuationDispatcher? = null,
+                                  f: suspend (conn: Connection) -> A) = suspendable<A>(dispatcher) {
         sendQuery("BEGIN")
         try {
             val res = f(this@Connection)

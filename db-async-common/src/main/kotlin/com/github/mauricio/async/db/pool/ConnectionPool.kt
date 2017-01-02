@@ -20,6 +20,7 @@ import com.github.mauricio.async.db.util.ExecutorServiceUtils
 import com.github.mauricio.async.db.QueryResult
 import com.github.mauricio.async.db.Connection
 import com.github.elizarov.async.suspendable
+import kotlin.coroutines.ContinuationDispatcher
 import kotlin.coroutines.suspendCoroutine
 
 /**
@@ -40,7 +41,8 @@ import kotlin.coroutines.suspendCoroutine
 
 class ConnectionPool<T : Connection>(
         factory: ObjectFactory<T>,
-        configuration: PoolConfiguration
+        configuration: PoolConfiguration,
+        val executionContext: ContinuationDispatcher? = null
 )
     : SingleThreadedAsyncObjectPool<T>(factory, configuration), Connection {
 
@@ -80,7 +82,7 @@ class ConnectionPool<T : Connection>(
      */
 
     override suspend fun sendQuery(query: String): QueryResult =
-            this.use({ it.sendQuery(query) })
+            this.use(executionContext, { it.sendQuery(query) })
 
     /**
      *
@@ -94,7 +96,7 @@ class ConnectionPool<T : Connection>(
      */
 
     override suspend fun sendPreparedStatement(query: String, values: List<Any?>): QueryResult =
-            this.use({ it.sendPreparedStatement(query, values) })
+            this.use(executionContext, { it.sendPreparedStatement(query, values) })
 
     /**
      *
@@ -106,7 +108,7 @@ class ConnectionPool<T : Connection>(
      * @return result of f, conditional on transaction operations succeeding
      */
 
-    override suspend fun <A> inTransaction(f: suspend (conn: Connection) -> A): A =
-            this.use({ it.inTransaction(f) })
+    override suspend fun <A> inTransaction(dispatcher: ContinuationDispatcher?, f: suspend (conn: Connection) -> A): A =
+            this.use(executionContext, { it.inTransaction(dispatcher ?: executionContext, f) })
 
 }
