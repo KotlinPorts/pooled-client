@@ -42,7 +42,7 @@ import kotlin.coroutines.suspendCoroutine
 class ConnectionPool<T : Connection>(
         factory: ObjectFactory<T>,
         configuration: PoolConfiguration,
-        val executionContext: ContinuationDispatcher? = null
+        val executionContext: ContinuationDispatcher? = ExecutorServiceUtils.CachedExecutionContext
 )
     : SingleThreadedAsyncObjectPool<T>(factory, configuration), Connection {
 

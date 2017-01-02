@@ -18,11 +18,30 @@ package com.github.mauricio.async.db.util
 
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.ContinuationDispatcher
 
 object ExecutorServiceUtils {
-    val cachedThreadPool = Executors.newCachedThreadPool(DaemonThreadsFactory("db-async-default"))
+    val CachedThreadPool = Executors.newCachedThreadPool(DaemonThreadsFactory("db-async-default"))
+
+    //TODO: make something better, check if we already in this thread
+    //Trivial implementation
+    val CachedExecutionContext = object : ContinuationDispatcher {
+        override fun <T> dispatchResume(value: T, continuation: Continuation<T>): Boolean {
+            CachedThreadPool.execute {
+                continuation.resume(value)
+            }
+            return true
+        }
+
+        override fun dispatchResumeWithException(exception: Throwable, continuation: Continuation<*>): Boolean {
+            CachedThreadPool.execute {
+                continuation.resumeWithException(exception)
+            }
+            return true
+        }
+    }
 
     fun newFixedPool(count: Int, name: String): ExecutorService =
             Executors.newFixedThreadPool(count, DaemonThreadsFactory(name))
-
 }
