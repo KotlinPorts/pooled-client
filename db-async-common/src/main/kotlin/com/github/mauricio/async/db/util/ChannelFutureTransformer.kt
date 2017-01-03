@@ -16,7 +16,14 @@
 
 package com.github.mauricio.async.db.util
 
-//TODO: convert ChannelFuture to continuations somehow
+import io.netty.channel.ChannelFuture
+import io.netty.util.concurrent.GenericFutureListener
+
+fun ChannelFuture.addClosure(handler: (cf: ChannelFuture) -> Unit) {
+    this.addListener(GenericFutureListener<ChannelFuture> { handler(it) })
+}
+
+//TODO: may be convert ChannelFuture to continuations somehow
 
 //import io.netty.channel.ChannelFuture
 //import io.netty.channel.ChannelFutureListener

@@ -24,5 +24,5 @@ import com.github.mauricio.async.db.exceptions.DatabaseException
  *
  * @param query the problematic query
  */
-class QueryMustNotBeNullOrEmptyException(query : String)
+class QueryMustNotBeNullOrEmptyException(query : String?)
   : DatabaseException("Query must not be null or empty, original query is [%s]".format(query))
