@@ -16,8 +16,6 @@
 
 package com.github.mauricio.async.db.pool
 
-import org.funktionale.either.Either
-
 /**
  *
  * Definition for objects that can be used as a factory for [[com.github.mauricio.async.db.pool.AsyncObjectPool]]
@@ -36,7 +34,7 @@ interface ObjectFactory<T> {
    * @return
    */
 
-  fun create() : T
+  suspend fun create() : T
 
   /**
    *
@@ -65,7 +63,7 @@ interface ObjectFactory<T> {
    * @return
    */
 
-  fun validate( item : T ) : Either<T, Throwable>
+  suspend fun validate( item : T ) : T
 
   /**
    *
@@ -80,7 +78,7 @@ interface ObjectFactory<T> {
    * @return
    */
 
-  fun test( item : T ) : Either<T, Throwable> = validate(item)
+  suspend fun test( item : T ) : T = validate(item)
 
 
 }

@@ -4,9 +4,10 @@ import io.netty.channel.EventLoopGroup
 import io.netty.channel.nio.NioEventLoopGroup
 import java.time.Duration
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.Executors
 
 fun main(args: Array<String>) {
-    val group = NioEventLoopGroup(1)
+    val service = Executors.newSingleThreadScheduledExecutor()
 
     fun supplySlow(s: String) = CompletableFuture.supplyAsync<String> {
         Thread.sleep(500L)
@@ -16,12 +17,12 @@ fun main(args: Array<String>) {
     val f = async<String> {
         val a = supplySlow("A").await()
         log("a = $a")
-        group.withTimeout(Duration.ofSeconds(1)) {
+        withTimeout(service, Duration.ofSeconds(1)) {
             val b = supplySlow("B").await()
             log("b = $b")
         }
         try {
-            group.withTimeout(Duration.ofMillis(750L)) {
+            withTimeout(service, Duration.ofMillis(750L)) {
                 val c = supplySlow("C").await()
                 log("c = $c")
                 val d = supplySlow("D").await()

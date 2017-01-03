@@ -16,13 +16,15 @@
 
 package com.github.mauricio.async.db.util
 
+import java.time.Duration
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.ContinuationDispatcher
 
 object ExecutorServiceUtils {
-    val CachedThreadPool = Executors.newCachedThreadPool(DaemonThreadsFactory("db-async-default"))
+    val CachedThreadPool = Executors.newScheduledThreadPool(0, DaemonThreadsFactory("db-async-default"))
 
     //TODO: make something better, check if we already in this thread
     //Trivial implementation
@@ -44,4 +46,10 @@ object ExecutorServiceUtils {
 
     fun newFixedPool(count: Int, name: String): ExecutorService =
             Executors.newFixedThreadPool(count, DaemonThreadsFactory(name))
+
+    suspend fun <T> withTimeout(duration: Duration?, block: suspend () -> T): T =
+        com.github.elizarov.async.withTimeout(CachedThreadPool, duration?.toMillis(), block)
+
+    suspend fun <T> withTimeout(durationMillis: Long?, block: suspend () -> T): T =
+        com.github.elizarov.async.withTimeout(CachedThreadPool, durationMillis ?: 0, block)
 }

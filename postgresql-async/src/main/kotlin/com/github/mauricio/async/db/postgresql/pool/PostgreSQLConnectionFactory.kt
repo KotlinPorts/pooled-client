@@ -16,24 +16,22 @@
 
 package com.github.mauricio.async.db.postgresql.pool
 
+import com.github.elizarov.async.suspendable
 import com.github.mauricio.async.db.Configuration
 import com.github.mauricio.async.db.exceptions.ConnectionTimeoutedException
 import com.github.mauricio.async.db.pool.ObjectFactory
 import com.github.mauricio.async.db.postgresql.PostgreSQLConnection
-import com.github.mauricio.async.db.util.Log
 import java.nio.channels.ClosedChannelException
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.language.postfixOps
-import scala.util.{Success, Failure, Try}
 import scala.concurrent.ExecutionContext
 import com.github.mauricio.async.db.util.ExecutorServiceUtils
 import com.github.mauricio.async.db.util.NettyUtils
 import io.netty.channel.EventLoopGroup
-
-object PostgreSQLConnectionFactory {
-  val log = Log.get[PostgreSQLConnectionFactory]
-}
+import mu.KLogging
+import org.funktionale.either.Either
+import kotlin.coroutines.ContinuationDispatcher
 
 /**
  *
@@ -44,20 +42,21 @@ object PostgreSQLConnectionFactory {
 
 class PostgreSQLConnectionFactory( 
     val configuration : Configuration, 
-    group : EventLoopGroup = NettyUtils.DefaultEventLoopGroup,
-    executionContext : ExecutionContext = ExecutorServiceUtils.CachedExecutionContext ) : ObjectFactory[PostgreSQLConnection] {
+    val group : EventLoopGroup = NettyUtils.DefaultEventLoopGroup,
+    val executionContext : ContinuationDispatcher = ExecutorServiceUtils.CachedExecutionContext ) : ObjectFactory<PostgreSQLConnection> {
 
-  import PostgreSQLConnectionFactory.log
+  companion object: KLogging()
 
-  fun create: PostgreSQLConnection = {
-    val connection = new PostgreSQLConnection(configuration, group = group, executionContext = executionContext)
-    Await.result(connection.connect, configuration.connectTimeout)
-
+  override suspend fun create(): PostgreSQLConnection = suspendable(executionContext) {
+    val connection = PostgreSQLConnection(configuration, group = group, executionContext = executionContext)
+    ExecutorServiceUtils.withTimeout(configuration.connectTimeout) {
+      connection.connect()
+    }
     connection
   }
 
-  fun destroy(item: PostgreSQLConnection) {
-    item.disconnect
+  override fun destroy(item: PostgreSQLConnection) {
+    item.disconnect()
   }
 
   /**
@@ -68,18 +67,19 @@ class PostgreSQLConnectionFactory(
    * @return
    */
 
-  fun validate( item : PostgreSQLConnection ) : Try[PostgreSQLConnection] = {
-    Try {
+  override fun validate( item : PostgreSQLConnection ) : Either<PostgreSQLConnection, Throwable> =
+    try {
       if ( item.isTimeouted ) {
-        throw new ConnectionTimeoutedException(item)
+        throw ConnectionTimeoutedException(item)
       }
       if ( !item.isConnected || item.hasRecentError ) {
-        throw new ClosedChannelException()
+        throw ClosedChannelException()
       } 
       item.validateIfItIsReadyForQuery("Trying to give back a connection that is not ready for query")
-      item
+      Either.Left(item)
+    } catch (e: Throwable) {
+      Either.Right(e)
     }
-  }
 
   /**
    *
@@ -89,7 +89,7 @@ class PostgreSQLConnectionFactory(
    * @return
    */
 
-  override fun test(item: PostgreSQLConnection): Try[PostgreSQLConnection] = {
+  override fun test(item: PostgreSQLConnection): Either<PostgreSQLConnection, Throwable> {
     val result : Try[PostgreSQLConnection] = Try({
       Await.result( item.sendQuery("SELECT 0"), configuration.testTimeout )
       item

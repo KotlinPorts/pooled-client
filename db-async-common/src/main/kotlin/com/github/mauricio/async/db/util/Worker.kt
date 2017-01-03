@@ -29,6 +29,22 @@ class Worker(val executorService: ExecutorService) {
 
     companion object : KLogging()
 
+    val dispatcher = object : ContinuationDispatcher {
+        override fun <T> dispatchResume(value: T, continuation: Continuation<T>): Boolean {
+            executorService.execute({
+                continuation.resume(value)
+            })
+            return true;
+        }
+
+        override fun dispatchResumeWithException(exception: Throwable, continuation: Continuation<*>): Boolean {
+            executorService.execute({
+                continuation.resumeWithException(exception)
+            })
+            return true;
+        }
+    }
+
     //TODO: write dispatcher for this worker
 
     /**
@@ -39,9 +55,7 @@ class Worker(val executorService: ExecutorService) {
      */
     suspend fun <A> act(f: suspend () -> A) = suspendCoroutine<A> {
         cont ->
-        executorService.execute({
-            f.startCoroutine(cont)
-        })
+        f.startCoroutine(cont, dispatcher)
     }
 
     fun action(f: () -> Unit) {

@@ -58,9 +58,7 @@ open class SingleThreadedAsyncObjectPool<T>(
     init {
         timer.scheduleAtFixedRate(object : TimerTask() {
             override fun run() {
-                mainPool.action {
-                    testObjects()
-                }
+                async { testObjects() }
             }
         }, configuration.validationInterval, configuration.validationInterval)
     }
@@ -97,13 +95,11 @@ open class SingleThreadedAsyncObjectPool<T>(
         val idx = this.checkouts.indexOf(item)
         if (idx >= 0) {
             this.checkouts.removeAt(idx)
-            val test = this.factory.validate(item)
-            when (test) {
-                is Either.Left -> this.addBack(item)
-                is Either.Right -> {
-                    this.factory.destroy(item)
-                    throw test.r
-                }
+            try {
+                addBack(factory.validate(item))
+            } catch(e: Exception) {
+                factory.destroy(item)
+                throw e
             }
         } else {
             // It's already a failure but lets doublecheck why
@@ -207,12 +203,14 @@ open class SingleThreadedAsyncObjectPool<T>(
 
     private fun createOrReturnItem(cont: Continuation<T>) {
         if (poolables.isEmpty()) {
-            try {
-                val item = factory.create()
-                this.checkouts += item
-                cont.resume(item)
-            } catch (e: Throwable) {
-                cont.resumeWithException(e)
+            async(mainPool.dispatcher) {
+                try {
+                    val item = factory.create()
+                    this.checkouts += item
+                    cont.resume(item)
+                } catch (e: Throwable) {
+                    cont.resumeWithException(e)
+                }
             }
         } else {
             val h = poolables[0]
@@ -235,23 +233,21 @@ open class SingleThreadedAsyncObjectPool<T>(
      *
      */
 
-    private fun testObjects() {
+    private suspend fun testObjects() = mainPool.act {
         val removals = mutableListOf<PoolableHolder<T>>()
         this.poolables.forEach {
             poolable ->
-            val test = this.factory.test(poolable.item)
-            when (test) {
-                is Either.Left ->
-                    if (poolable.timeElapsed() > configuration.maxIdle) {
-                        logger.debug("Connection was idle for {}, maxIdle is {}, removing it", poolable.timeElapsed(), configuration.maxIdle)
-                        removals += poolable
-                        factory.destroy(poolable.item)
-                    }
-                is Either.Right -> {
-                    logger.error("Failed to validate object", test.r)
+            try {
+                factory.test(poolable.item)
+                if (poolable.timeElapsed() > configuration.maxIdle) {
+                    logger.debug("Connection was idle for {}, maxIdle is {}, removing it", poolable.timeElapsed(), configuration.maxIdle)
                     removals += poolable
                     factory.destroy(poolable.item)
                 }
+            } catch (e: Throwable) {
+                logger.error("Failed to validate object", e)
+                removals += poolable
+                factory.destroy(poolable.item)
             }
         }
         this.poolables = this.poolables - removals
