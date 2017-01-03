@@ -20,22 +20,12 @@ import com.github.mauricio.async.db.column.ColumnEncoderDecoder
 
 object BooleanEncoderDecoder : ColumnEncoderDecoder {
 
-  override fun decode(value: String): Any = {
-    if ("t" == value) {
-      true
-    } else {
-      false
-    }
-  }
+    override fun decode(value: String): Any = ("t" == value)
 
-  override fun encode(value: Any): String = {
-    val result = value.asInstanceOf[Boolean]
-
-    if (result) {
-      "t"
-    } else {
-      "f"
-    }
-  }
-
+    override fun encode(value: Any): String =
+            if (value as Boolean) {
+                "t"
+            } else {
+                "f"
+            }
 }

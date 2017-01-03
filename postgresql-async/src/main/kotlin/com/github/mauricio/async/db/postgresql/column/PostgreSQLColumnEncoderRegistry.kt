@@ -24,13 +24,13 @@ import org.joda.time._
 
 import scala.collection.JavaConversions._
 
-object PostgreSQLColumnEncoderRegistry {
-  val Instance = new PostgreSQLColumnEncoderRegistry()
-}
-
 class PostgreSQLColumnEncoderRegistry : ColumnEncoderRegistry {
 
-  private val classesSequence_ : List[(Class[_], (ColumnEncoder, Int))] = List(
+    companion object {
+        val Instance = PostgreSQLColumnEncoderRegistry()
+    }
+
+    private val classesSequence_: List[(Class[_], (ColumnEncoder, Int))] = List(
     classOf[Int] -> (IntegerEncoderDecoder -> ColumnTypes.Numeric),
     classOf[java.lang.Integer] -> (IntegerEncoderDecoder -> ColumnTypes.Numeric),
 
@@ -74,116 +74,117 @@ class PostgreSQLColumnEncoderRegistry : ColumnEncoderRegistry {
     classOf[Array[Byte]] -> ( ByteArrayEncoderDecoder -> ColumnTypes.ByteA ),
     classOf[ByteBuffer] -> ( ByteArrayEncoderDecoder -> ColumnTypes.ByteA ),
     classOf[ByteBuf] -> ( ByteArrayEncoderDecoder -> ColumnTypes.ByteA )
-  )
+    )
 
-  private final val classesSequence = (classOf[LocalTime] -> (TimeEncoderDecoder.Instance -> ColumnTypes.Time)) ::
+    private final val classesSequence = (classOf[LocalTime] -> (TimeEncoderDecoder.Instance -> ColumnTypes.Time)) ::
     (classOf[ReadablePartial] -> (TimeEncoderDecoder.Instance -> ColumnTypes.Time)) ::
     classesSequence_
 
-  private final val classes = classesSequence.toMap
+    private final val classes = classesSequence.toMap
 
-  override fun encode(value: Any): String = {
+    override fun encode(value: Any): String = {
 
-    if (value == null) {
-      return null
-    }
-
-    value match {
-      case Some(v) => encode(v)
-      case None => null
-      case _ => encodeValue(value)
-    }
-
-  }
-
-  /**
-   * Used to encode a value that is not null and not an Option.
-   */
-  private fun encodeValue(value: Any): String = {
-
-    val encoder = this.classes.get(value.getClass)
-
-    if (encoder.isDefined) {
-      encoder.get._1.encode(value)
-    } else {
-      value match {
-        case i: java.lang.Iterable[_] => encodeArray(i.toIterable)
-        case i: Traversable[_] => encodeArray(i)
-        case i: Array[_] => encodeArray(i.toIterable)
-        case p: Product => encodeComposite(p)
-        case _ => {
-          this.classesSequence.find(entry => entry._1.isAssignableFrom(value.getClass)) match {
-            case Some(parent) => parent._2._1.encode(value)
-            case None => value.toString
-          }
+        if (value == null) {
+            return null
         }
-      }
+
+        value match {
+            case Some (v) => encode(v)
+            case None => null
+            case _ => encodeValue (value)
+        }
 
     }
 
-  }
+    /**
+     * Used to encode a value that is not null and not an Option.
+     */
+    private fun encodeValue(value: Any): String = {
 
-  private fun encodeComposite(p: Product): String = {
-    p.productIterator.map {
-      item =>
-        if (item == null || item == None) {
-          "NULL"
+        val encoder = this.classes.get(value.getClass)
+
+        if (encoder.isDefined) {
+            encoder.get._1.encode(value)
         } else {
-          if (this.shouldQuote(item)) {
-            "\"" + this.encode(item).replaceAllLiterally("\\", """\\""").replaceAllLiterally("\"", """\"""") + "\""
-          } else {
-            this.encode(item)
-          }
-        }
-    }.mkString("(", ",", ")")
-  }
+            value match {
+                case i : java . lang . Iterable [ _] => encodeArray(i.toIterable)
+                case i : Traversable [ _] => encodeArray(i)
+                case i : Array [ _] => encodeArray(i.toIterable)
+                case p : Product => encodeComposite (p)
+                case _ => {
+                    this.classesSequence.find(entry => entry . _1 . isAssignableFrom (value.getClass)) match {
+                    case Some (parent) => parent._2._1.encode(value)
+                    case None => value . toString
+                }
+                }
+            }
 
-  private fun encodeArray(collection: Traversable[_]): String = {
-    collection.map {
-      item =>
-        if (item == null || item == None) {
-          "NULL"
+        }
+
+    }
+
+    private fun encodeComposite(p: Product): String = {
+        p.productIterator.map {
+            item =>
+            if (item == null || item == None) {
+                "NULL"
+            } else {
+                if (this.shouldQuote(item)) {
+                    "\"" + this.encode(item).replaceAllLiterally("\\", """\\""").replaceAllLiterally("\"", """\"""") + "\""
+                } else {
+                    this.encode(item)
+                }
+            }
+        }.mkString("(", ",", ")")
+    }
+
+    private fun encodeArray(collection: Traversable[_]): String =
+    {
+        collection.map {
+            item =>
+            if (item == null || item == None) {
+                "NULL"
+            } else {
+                if (this.shouldQuote(item)) {
+                    "\"" + this.encode(item).replaceAllLiterally("\\", """\\""").replaceAllLiterally("\"", """\"""") + "\""
+                } else {
+                    this.encode(item)
+                }
+            }
+        }.mkString("{", ",", "}")
+    }
+
+    private fun shouldQuote(value: Any): Boolean = {
+        value match {
+            case n : java . lang . Number => false
+            case n : Int => false
+            case n : Short => false
+            case n : Long => false
+            case n : Float => false
+            case n : Double => false
+            case n : java . lang . Iterable [ _] => false
+            case n : Traversable [ _] => false
+            case n : Array [ _] => false
+            case Some (v) => shouldQuote(v)
+            case _ => true
+        }
+    }
+
+    override fun kindOf(value: Any): Int = {
+        if (value == null || value == None) {
+            0
         } else {
-          if (this.shouldQuote(item)) {
-            "\"" + this.encode(item).replaceAllLiterally("\\", """\\""").replaceAllLiterally("\"", """\"""") + "\""
-          } else {
-            this.encode(item)
-          }
+            value match {
+                case Some (v) => kindOf(v)
+                case v : String => ColumnTypes . Untyped
+                        case _ => {
+                    this.classes.get(value.getClass) match {
+                        case Some (entry) => entry._2
+                        case None => ColumnTypes . Untyped
+                    }
+                }
+            }
         }
-    }.mkString("{", ",", "}")
-  }
-
-  private fun shouldQuote(value: Any): Boolean = {
-    value match {
-      case n: java.lang.Number => false
-      case n: Int => false
-      case n: Short => false
-      case n: Long => false
-      case n: Float => false
-      case n: Double => false
-      case n: java.lang.Iterable[_] => false
-      case n: Traversable[_] => false
-      case n: Array[_] => false
-      case Some(v) => shouldQuote(v)
-      case _ => true
     }
-  }
-
-  override fun kindOf(value: Any): Int = {
-    if ( value == null || value == None ) {
-      0
-    } else {
-      value match {
-        case Some(v) => kindOf(v)
-        case v : String => ColumnTypes.Untyped
-        case _ => {
-          this.classes.get(value.getClass) match {
-            case Some( entry ) => entry._2
-            case None => ColumnTypes.Untyped
-          }
-        }
-      }
-    }
-  }
 
 }

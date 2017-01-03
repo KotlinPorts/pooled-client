@@ -4,6 +4,7 @@ import com.github.elizarov.async.suspendable
 import com.github.mauricio.async.db.util.ExecutorServiceUtils
 import com.github.mauricio.async.db.QueryResult
 import com.github.mauricio.async.db.Connection
+import kotlin.coroutines.ContinuationDispatcher
 import kotlin.coroutines.suspendCoroutine
 
 class PartitionedConnectionPool<T : Connection>(
@@ -32,6 +33,6 @@ class PartitionedConnectionPool<T : Connection>(
     override suspend fun sendPreparedStatement(query: String, values: List<Any?>): QueryResult =
         this.use { sendPreparedStatement(query, values) }
 
-    override suspend fun <A> inTransaction(f: suspend (conn: Connection) -> A) =
-        this.use { it.inTransaction(f) }
+    override suspend fun <A> inTransaction(dispatcher: ContinuationDispatcher?, f: suspend (conn: Connection) -> A) =
+        this.use(dispatcher) { it.inTransaction(dispatcher, f) }
 }

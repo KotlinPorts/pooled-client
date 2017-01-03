@@ -17,62 +17,60 @@
 package com.github.mauricio.async.db.postgresql.column
 
 import com.github.mauricio.async.db.column.ColumnDecoder
-import com.github.mauricio.async.db.postgresql.util.{ArrayStreamingParserDelegate, ArrayStreamingParser}
-import scala.collection.IndexedSeq
-import scala.collection.mutable.ArrayBuffer
+import com.github.mauricio.async.db.postgresql.util.ArrayStreamingParserDelegate
+import com.github.mauricio.async.db.postgresql.util.ArrayStreamingParser
 import com.github.mauricio.async.db.general.ColumnData
-import io.netty.buffer.{Unpooled, ByteBuf}
+import io.netty.buffer.Unpooled
+import io.netty.buffer.ByteBuf
+import org.funktionale.collections.tail
 import java.nio.charset.Charset
 
 class ArrayDecoder(private val decoder: ColumnDecoder) : ColumnDecoder {
 
-  override fun decode( kind : ColumnData, buffer : ByteBuf, charset : Charset ): IndexedSeq[Any] = {
+    override fun decode(kind: ColumnData, buffer: ByteBuf, charset: Charset): List<Any?> {
 
-    val bytes = new Array[Byte](buffer.readableBytes())
-    buffer.readBytes(bytes)
-    val value = new String(bytes, charset)
+        val bytes = ByteArray(buffer.readableBytes())
+        buffer.readBytes(bytes)
+        val value = String(bytes, charset)
 
-    var stack = List.empty[ArrayBuffer[Any]]
-    var current: ArrayBuffer[Any] = null
-    var result: IndexedSeq[Any] = null
-    val delegate = new ArrayStreamingParserDelegate {
-      override fun arrayEnded {
-        result = stack.head
-        stack = stack.tail
-      }
+        var stack = mutableListOf<MutableList<Any?>>()
+        var current: MutableList<Any?>? = null
+        var result: MutableList<Any?>? = null
+        val delegate = object : ArrayStreamingParserDelegate {
+            override fun arrayEnded() {
+                result = stack[stack.size - 1]
+                stack.removeAt(stack.size - 1)
+            }
 
-      override fun elementFound(element: String) {
-        val result = if ( decoder.supportsStringDecoding ) {
-          decoder.decode(element)
-        } else {
-          decoder.decode(kind, Unpooled.wrappedBuffer( element.getBytes(charset) ), charset)
+            override fun elementFound(element: String) {
+                val result = if (decoder.supportsStringDecoding()) {
+                    decoder.decode(element)
+                } else {
+                    decoder.decode(kind, Unpooled.wrappedBuffer(element.toByteArray(charset)), charset)
+                }
+                current!! += result
+            }
+
+            override fun nullElementFound() {
+                current!!.add(null)
+            }
+
+            override fun arrayStarted() {
+                current = mutableListOf<Any?>()
+
+                if (stack.isNotEmpty()) {
+                    stack[stack.size - 1].add(current)
+                }
+
+                stack.add(current!!)
+            }
         }
-        current += result
-      }
 
-      override fun nullElementFound {
-        current += null
-      }
+        ArrayStreamingParser.parse(value, delegate)
 
-      override fun arrayStarted {
-        current = new ArrayBuffer[Any]()
-
-        stack.headOption match {
-          case Some(item) => {
-            item += current
-          }
-          case None => {}
-        }
-
-        stack ::= current
-      }
+        return result!!
     }
 
-    ArrayStreamingParser.parse(value, delegate)
-
-    result
-  }
-
-  fun decode( value : String ) : Any = throw new UnsupportedOperationException("Should not be called")
+    override fun decode(value: String): Any? = throw UnsupportedOperationException ("Should not be called")
 
 }

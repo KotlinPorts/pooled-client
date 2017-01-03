@@ -20,13 +20,12 @@ import com.github.mauricio.async.db.column.ColumnEncoderDecoder
 
 object SingleByteEncoderDecoder : ColumnEncoderDecoder {
 
-  override fun encode(value: Any): String = {
-    val byte = value.asInstanceOf[Byte]
-    ByteArrayEncoderDecoder.encode(Array(byte))
-  }
+    override fun encode(value: Any): String {
+        val byte = value as Byte
+        return ByteArrayEncoderDecoder.encode(byteArrayOf(byte))
+    }
 
-  override fun decode(value: String): Any = {
-    ByteArrayEncoderDecoder.decode(value)(0)
-  }
+    override fun decode(value: String): Any =
+            ByteArrayEncoderDecoder.decode(value)[0]
 
 }

@@ -16,8 +16,9 @@
 
 package com.github.mauricio.async.db.postgresql.messages.backend
 
-object AuthenticationOkMessage {
-  val Instance = new AuthenticationOkMessage()
-}
 
-class AuthenticationOkMessage : AuthenticationMessage
+class AuthenticationOkMessage : AuthenticationMessage() {
+    companion object {
+        val Instance = AuthenticationOkMessage()
+    }
+}

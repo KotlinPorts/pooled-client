@@ -20,6 +20,6 @@ import com.github.mauricio.async.db.column.ColumnEncoderDecoder
 
 object CharEncoderDecoder : ColumnEncoderDecoder {
 
-  override fun decode(value: String): Any = value.charAt(0)
+  override fun decode(value: String): Any = value[0]
 
 }
