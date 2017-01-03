@@ -22,7 +22,6 @@ import com.github.mauricio.async.db.postgresql.util.ArrayStreamingParser
 import com.github.mauricio.async.db.general.ColumnData
 import io.netty.buffer.Unpooled
 import io.netty.buffer.ByteBuf
-import org.funktionale.collections.tail
 import java.nio.charset.Charset
 
 class ArrayDecoder(private val decoder: ColumnDecoder) : ColumnDecoder {

@@ -24,7 +24,6 @@ object DataRowParser : MessageParser {
 
     override fun parseMessage(buffer: ByteBuf): ServerMessage =
             DataRowMessage(Array<ByteBuf?>(buffer.readShort().toInt(), {
-                column ->
                 val length = buffer.readInt()
 
                 if (length == -1) {

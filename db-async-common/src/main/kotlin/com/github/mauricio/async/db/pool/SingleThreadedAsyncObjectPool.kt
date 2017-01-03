@@ -20,12 +20,10 @@ import com.github.elizarov.async.async
 import com.github.mauricio.async.db.util.Worker
 import com.github.elizarov.async.suspendable
 import mu.KLogging
-import org.funktionale.either.Either
 import java.util.*
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.Continuation
-import kotlin.coroutines.startCoroutine
 import kotlin.coroutines.suspendCoroutine
 
 /**

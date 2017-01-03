@@ -28,7 +28,6 @@ import com.github.mauricio.async.db.util.ExecutorServiceUtils
 import com.github.mauricio.async.db.util.NettyUtils
 import io.netty.channel.EventLoopGroup
 import mu.KLogging
-import org.funktionale.either.Either
 import kotlin.coroutines.ContinuationDispatcher
 
 /**

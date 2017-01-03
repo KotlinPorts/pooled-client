@@ -56,9 +56,9 @@ object PostgreSQLTimestampEncoderDecoder : ColumnEncoderDecoder, KLogging() {
 
     fun formatter() = internalFormatters[5]
 
-    override fun decode(kind: ColumnData, value: ByteBuf, charset: Charset): Any {
-        val bytes = ByteArray(value.readableBytes())
-        value.readBytes(bytes)
+    override fun decode(kind: ColumnData, buffer: ByteBuf, charset: Charset): Any {
+        val bytes = ByteArray(buffer.readableBytes())
+        buffer.readBytes(bytes)
 
         val text = String(bytes, charset)
 

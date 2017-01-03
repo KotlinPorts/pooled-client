@@ -30,7 +30,6 @@ subprojects {
     dependencies {
         compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
         compile 'io.github.microutils:kotlin-logging:1.4'
-        compile 'org.funktionale:funktionale:0.9.7'
     }
 
     jar {

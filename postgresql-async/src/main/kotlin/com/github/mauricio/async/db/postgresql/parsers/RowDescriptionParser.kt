@@ -68,7 +68,6 @@ class RowDescriptionParser(val charset: Charset) : MessageParser {
         val columnsCount = buffer.readShort().toInt()
         val columns = Array<PostgreSQLColumnData>(columnsCount,
                 {
-                    index ->
                     PostgreSQLColumnData(
                             name = readCString(buffer, charset),
                             tableObjectId = buffer.readInt(),
