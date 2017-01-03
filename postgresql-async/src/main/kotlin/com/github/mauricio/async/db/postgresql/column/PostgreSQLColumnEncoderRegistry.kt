@@ -16,13 +16,15 @@
 
 package com.github.mauricio.async.db.postgresql.column
 
+import com.github.mauricio.async.db.column.ColumnEncoder
+import com.github.mauricio.async.db.column.ColumnEncoderRegistry
 import java.nio.ByteBuffer
+import java.time.*
 
-import com.github.mauricio.async.db.column._
+import com.github.mauricio.async.db.column.*
+import com.github.mauricio.async.db.postgresql.column.ColumnTypes.Timestamp
 import io.netty.buffer.ByteBuf
-import org.joda.time._
-
-import scala.collection.JavaConversions._
+import java.util.*
 
 class PostgreSQLColumnEncoderRegistry : ColumnEncoderRegistry {
 
@@ -30,161 +32,131 @@ class PostgreSQLColumnEncoderRegistry : ColumnEncoderRegistry {
         val Instance = PostgreSQLColumnEncoderRegistry()
     }
 
-    private val classesSequence_: List[(Class[_], (ColumnEncoder, Int))] = List(
-    classOf[Int] -> (IntegerEncoderDecoder -> ColumnTypes.Numeric),
-    classOf[java.lang.Integer] -> (IntegerEncoderDecoder -> ColumnTypes.Numeric),
+    private val classesSequence = listOf<Pair<Class<*>, Pair<ColumnEncoder, Int>>>(
+            Int.javaClass to (IntegerEncoderDecoder to ColumnTypes.Numeric),
 
-    classOf[java.lang.Short] -> (ShortEncoderDecoder -> ColumnTypes.Numeric),
-    classOf[Short] -> (ShortEncoderDecoder -> ColumnTypes.Numeric),
+            Short.javaClass to (ShortEncoderDecoder to ColumnTypes.Numeric),
 
-    classOf[Long] -> (LongEncoderDecoder -> ColumnTypes.Numeric),
-    classOf[java.lang.Long] -> (LongEncoderDecoder -> ColumnTypes.Numeric),
+            Long.javaClass to (LongEncoderDecoder to ColumnTypes.Numeric),
 
-    classOf[String] -> (StringEncoderDecoder -> ColumnTypes.Varchar),
-    classOf[java.lang.String] -> (StringEncoderDecoder -> ColumnTypes.Varchar),
+            String.javaClass to (StringEncoderDecoder to ColumnTypes.Varchar),
 
-    classOf[Float] -> (FloatEncoderDecoder -> ColumnTypes.Numeric),
-    classOf[java.lang.Float] -> (FloatEncoderDecoder -> ColumnTypes.Numeric),
+            Float.javaClass to (FloatEncoderDecoder to ColumnTypes.Numeric),
 
-    classOf[Double] -> (DoubleEncoderDecoder -> ColumnTypes.Numeric),
-    classOf[java.lang.Double] -> (DoubleEncoderDecoder -> ColumnTypes.Numeric),
+            Double.javaClass to (DoubleEncoderDecoder to ColumnTypes.Numeric),
 
-    classOf[BigDecimal] -> (BigDecimalEncoderDecoder -> ColumnTypes.Numeric),
-    classOf[java.math.BigDecimal] -> (BigDecimalEncoderDecoder -> ColumnTypes.Numeric),
+            java.math.BigDecimal::class.java to (BigDecimalEncoderDecoder to ColumnTypes.Numeric),
 
-    classOf[java.net.InetAddress] -> (InetAddressEncoderDecoder -> ColumnTypes.Inet),
+            java.net.InetAddress::class.java to (InetAddressEncoderDecoder to ColumnTypes.Inet),
 
-    classOf[java.util.UUID] -> (UUIDEncoderDecoder -> ColumnTypes.UUID),
+            java.util.UUID::class.java to (UUIDEncoderDecoder to ColumnTypes.UUID),
 
-    classOf[LocalDate] -> ( DateEncoderDecoder -> ColumnTypes.Date ),
-    classOf[LocalDateTime] -> (TimestampEncoderDecoder.Instance -> ColumnTypes.Timestamp),
-    classOf[DateTime] -> (TimestampWithTimezoneEncoderDecoder -> ColumnTypes.TimestampWithTimezone),
-    classOf[ReadableDateTime] -> (TimestampWithTimezoneEncoderDecoder -> ColumnTypes.TimestampWithTimezone),
-    classOf[ReadableInstant] -> (DateEncoderDecoder -> ColumnTypes.Date),
+            Date::class.java to (TimestampEncoderDecoder.Instance to ColumnTypes.Timestamp),
+            Timestamp::class.java to (TimestampEncoderDecoder.Instance to ColumnTypes.Timestamp),
 
-    classOf[ReadablePeriod] -> (PostgreSQLIntervalEncoderDecoder -> ColumnTypes.Interval),
-    classOf[ReadableDuration] -> (PostgreSQLIntervalEncoderDecoder -> ColumnTypes.Interval),
+            LocalTime::class.java to (TimeEncoderDecoder.Instance to ColumnTypes.Time),
+            LocalDate::class.java to (DateEncoderDecoder to ColumnTypes.Date),
+            LocalDateTime::class.java to (TimestampEncoderDecoder.Instance to ColumnTypes.Timestamp),
+            ZonedDateTime::class.java to (TimestampWithTimezoneEncoderDecoder to ColumnTypes.TimestampWithTimezone),
 
-    classOf[java.util.Date] -> (TimestampWithTimezoneEncoderDecoder -> ColumnTypes.TimestampWithTimezone),
-    classOf[java.sql.Date] -> ( DateEncoderDecoder -> ColumnTypes.Date ),
-    classOf[java.sql.Time] -> ( SQLTimeEncoder -> ColumnTypes.Time ),
-    classOf[java.sql.Timestamp] -> (TimestampWithTimezoneEncoderDecoder -> ColumnTypes.TimestampWithTimezone),
-    classOf[java.util.Calendar] -> (TimestampWithTimezoneEncoderDecoder -> ColumnTypes.TimestampWithTimezone),
-    classOf[java.util.GregorianCalendar] -> (TimestampWithTimezoneEncoderDecoder -> ColumnTypes.TimestampWithTimezone),
-    classOf[Array[Byte]] -> ( ByteArrayEncoderDecoder -> ColumnTypes.ByteA ),
-    classOf[ByteBuffer] -> ( ByteArrayEncoderDecoder -> ColumnTypes.ByteA ),
-    classOf[ByteBuf] -> ( ByteArrayEncoderDecoder -> ColumnTypes.ByteA )
+            Period::class.java to (PostgreSQLIntervalEncoderDecoder to ColumnTypes.Interval),
+            Duration::class.java to (PostgreSQLIntervalEncoderDecoder to ColumnTypes.Interval),
+
+            java.util.Date::class.java to (TimestampWithTimezoneEncoderDecoder to ColumnTypes.TimestampWithTimezone),
+            java.sql.Date::class.java to (DateEncoderDecoder to ColumnTypes.Date),
+            java.sql.Time::class.java to (SQLTimeEncoder to ColumnTypes.Time),
+            java.sql.Timestamp::class.java to (TimestampWithTimezoneEncoderDecoder to ColumnTypes.TimestampWithTimezone),
+            java.util.Calendar::class.java to (TimestampWithTimezoneEncoderDecoder to ColumnTypes.TimestampWithTimezone),
+            java.util.GregorianCalendar::class.java to (TimestampWithTimezoneEncoderDecoder to ColumnTypes.TimestampWithTimezone),
+            ByteArray::class.java to (ByteArrayEncoderDecoder to ColumnTypes.ByteA),
+            ByteBuffer::class.java to (ByteArrayEncoderDecoder to ColumnTypes.ByteA),
+            ByteBuf::class.java to (ByteArrayEncoderDecoder to ColumnTypes.ByteA)
     )
 
-    private final val classesSequence = (classOf[LocalTime] -> (TimeEncoderDecoder.Instance -> ColumnTypes.Time)) ::
-    (classOf[ReadablePartial] -> (TimeEncoderDecoder.Instance -> ColumnTypes.Time)) ::
-    classesSequence_
+    private val classes = classesSequence.toMap()
 
-    private final val classes = classesSequence.toMap
-
-    override fun encode(value: Any): String = {
-
-        if (value == null) {
-            return null
-        }
-
-        value match {
-            case Some (v) => encode(v)
-            case None => null
-            case _ => encodeValue (value)
-        }
-
-    }
+    override fun encode(value: Any?): String? =
+            if (value == null) {
+                null
+            } else encodeValue(value)
 
     /**
-     * Used to encode a value that is not null and not an Option.
+     * Used to encode a value that is not null
      */
-    private fun encodeValue(value: Any): String = {
+    private fun encodeValue(value: Any): String {
+        val encoder = this.classes.get(value.javaClass)
 
-        val encoder = this.classes.get(value.getClass)
-
-        if (encoder.isDefined) {
-            encoder.get._1.encode(value)
+        return if (encoder != null) {
+            encoder.first.encode(value)
         } else {
-            value match {
-                case i : java . lang . Iterable [ _] => encodeArray(i.toIterable)
-                case i : Traversable [ _] => encodeArray(i)
-                case i : Array [ _] => encodeArray(i.toIterable)
-                case p : Product => encodeComposite (p)
-                case _ => {
-                    this.classesSequence.find(entry => entry . _1 . isAssignableFrom (value.getClass)) match {
-                    case Some (parent) => parent._2._1.encode(value)
-                    case None => value . toString
-                }
-                }
-            }
-
-        }
-
-    }
-
-    private fun encodeComposite(p: Product): String = {
-        p.productIterator.map {
-            item =>
-            if (item == null || item == None) {
-                "NULL"
-            } else {
-                if (this.shouldQuote(item)) {
-                    "\"" + this.encode(item).replaceAllLiterally("\\", """\\""").replaceAllLiterally("\"", """\"""") + "\""
-                } else {
-                    this.encode(item)
+            when (value) {
+                is Iterable<*> -> encodeCollection(value)
+                is Array<*> -> encodeArray(value)
+                else -> {
+                    val thing = this.classesSequence.find { entry ->
+                        entry.first.isAssignableFrom(value.javaClass)
+                    }
+                    if (thing != null) {
+                        thing.second.first.encode(value)
+                    } else
+                        value.toString()
                 }
             }
-        }.mkString("(", ",", ")")
-    }
-
-    private fun encodeArray(collection: Traversable[_]): String =
-    {
-        collection.map {
-            item =>
-            if (item == null || item == None) {
-                "NULL"
-            } else {
-                if (this.shouldQuote(item)) {
-                    "\"" + this.encode(item).replaceAllLiterally("\\", """\\""").replaceAllLiterally("\"", """\"""") + "\""
-                } else {
-                    this.encode(item)
-                }
-            }
-        }.mkString("{", ",", "}")
-    }
-
-    private fun shouldQuote(value: Any): Boolean = {
-        value match {
-            case n : java . lang . Number => false
-            case n : Int => false
-            case n : Short => false
-            case n : Long => false
-            case n : Float => false
-            case n : Double => false
-            case n : java . lang . Iterable [ _] => false
-            case n : Traversable [ _] => false
-            case n : Array [ _] => false
-            case Some (v) => shouldQuote(v)
-            case _ => true
         }
     }
 
-    override fun kindOf(value: Any): Int = {
-        if (value == null || value == None) {
-            0
-        } else {
-            value match {
-                case Some (v) => kindOf(v)
-                case v : String => ColumnTypes . Untyped
-                        case _ => {
-                    this.classes.get(value.getClass) match {
-                        case Some (entry) => entry._2
-                        case None => ColumnTypes . Untyped
+    //popelyshev
+    //TODO: do it more effective, too many object allocations
+    private fun encodeCollection(collection: Iterable<*>): String =
+            collection.map {
+                item ->
+                if (item == null) {
+                    "NULL"
+                } else {
+                    if (this.shouldQuote(item)) {
+                        "\"" + this.encodeValue(item).replace("\\", """\\""").replace("\"", """\"""") + "\""
+                    } else {
+                        this.encode(item)
                     }
                 }
+            }.joinToString(",", "{", "}")
+
+    private fun encodeArray(collection: Array<*>): String =
+            collection.map {
+                item ->
+                if (item == null) {
+                    "NULL"
+                } else {
+                    if (this.shouldQuote(item)) {
+                        "\"" + this.encodeValue(item).replace("\\", """\\""").replace("\"", """\"""") + "\""
+                    } else {
+                        this.encode(item)
+                    }
+                }
+            }.joinToString(",", "{", "}")
+
+    private fun shouldQuote(value: Any): Boolean =
+            when (value) {
+                is java.lang.Number -> false
+                is Int -> false
+                is Short -> false
+                is Long -> false
+                is Float -> false
+                is Double -> false
+                is java.lang .Iterable<*> -> false
+                is Array<*> -> false
+                else -> true
             }
-        }
-    }
+
+    override fun kindOf(value: Any?): Int =
+            if (value == null) {
+                0
+            } else {
+                when (value) {
+                    is String -> ColumnTypes.Untyped
+                    else ->
+                        this.classes.get(value.javaClass)?.second ?: ColumnTypes.Untyped
+                }
+            }
 
 }
