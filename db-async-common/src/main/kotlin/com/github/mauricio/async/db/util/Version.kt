@@ -29,6 +29,8 @@ data class Version(val major: Int, val minor: Int, val maintenance: Int) : Compa
     constructor(pieces: Array<String>) :
             this(tryParse(0, pieces), tryParse(1, pieces), tryParse(2, pieces))
 
+    constructor(version: String) : this(version.split('.').toTypedArray())
+
     override fun compareTo(other: Version): Int {
         if (this.major != other.major) {
             return this.major - other.major

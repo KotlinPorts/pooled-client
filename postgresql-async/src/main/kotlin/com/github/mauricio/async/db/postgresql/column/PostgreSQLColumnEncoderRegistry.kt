@@ -33,17 +33,17 @@ class PostgreSQLColumnEncoderRegistry : ColumnEncoderRegistry {
     }
 
     private val classesSequence = listOf<Pair<Class<*>, Pair<ColumnEncoder, Int>>>(
-            Int.javaClass to (IntegerEncoderDecoder to ColumnTypes.Numeric),
+            Int::class.java to (IntegerEncoderDecoder to ColumnTypes.Numeric),
 
-            Short.javaClass to (ShortEncoderDecoder to ColumnTypes.Numeric),
+            Short::class.java to (ShortEncoderDecoder to ColumnTypes.Numeric),
 
-            Long.javaClass to (LongEncoderDecoder to ColumnTypes.Numeric),
+            Long::class.java to (LongEncoderDecoder to ColumnTypes.Numeric),
 
-            String.javaClass to (StringEncoderDecoder to ColumnTypes.Varchar),
+            String::class.java to (StringEncoderDecoder to ColumnTypes.Varchar),
 
-            Float.javaClass to (FloatEncoderDecoder to ColumnTypes.Numeric),
+            Float::class.java to (FloatEncoderDecoder to ColumnTypes.Numeric),
 
-            Double.javaClass to (DoubleEncoderDecoder to ColumnTypes.Numeric),
+            Double::class.java to (DoubleEncoderDecoder to ColumnTypes.Numeric),
 
             java.math.BigDecimal::class.java to (BigDecimalEncoderDecoder to ColumnTypes.Numeric),
 
@@ -84,7 +84,7 @@ class PostgreSQLColumnEncoderRegistry : ColumnEncoderRegistry {
      * Used to encode a value that is not null
      */
     private fun encodeValue(value: Any): String {
-        val encoder = this.classes.get(value.javaClass)
+        val encoder = this.classes.get(value::class.java)
 
         return if (encoder != null) {
             encoder.first.encode(value)
@@ -94,7 +94,7 @@ class PostgreSQLColumnEncoderRegistry : ColumnEncoderRegistry {
                 is Array<*> -> encodeArray(value)
                 else -> {
                     val thing = this.classesSequence.find { entry ->
-                        entry.first.isAssignableFrom(value.javaClass)
+                        entry.first.isAssignableFrom(value::class.java)
                     }
                     if (thing != null) {
                         thing.second.first.encode(value)
@@ -137,13 +137,13 @@ class PostgreSQLColumnEncoderRegistry : ColumnEncoderRegistry {
 
     private fun shouldQuote(value: Any): Boolean =
             when (value) {
-                is java.lang.Number -> false
+                is Number -> false
                 is Int -> false
                 is Short -> false
                 is Long -> false
                 is Float -> false
                 is Double -> false
-                is java.lang .Iterable<*> -> false
+                is Iterable<*> -> false
                 is Array<*> -> false
                 else -> true
             }

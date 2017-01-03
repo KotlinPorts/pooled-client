@@ -42,7 +42,7 @@ object ArrayStreamingParser : KLogging() {
 
                 } else if (char == '}' && !quoted) {
                     if (currentElement != null) {
-                        sendElementEvent(currentElement!!, quoted, delegate)
+                        sendElementEvent(currentElement, quoted, delegate)
                         currentElement = null
                     }
                     delegate.arrayEnded()
@@ -61,7 +61,7 @@ object ArrayStreamingParser : KLogging() {
                         }
                         ',' -> {
                             if (currentElement != null) {
-                                sendElementEvent(currentElement!!, quoted, delegate)
+                                sendElementEvent(currentElement, quoted, delegate)
                             }
                             currentElement = null
                         }

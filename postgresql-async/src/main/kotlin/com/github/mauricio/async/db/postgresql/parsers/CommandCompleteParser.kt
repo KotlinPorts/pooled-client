@@ -24,9 +24,9 @@ import io.netty.buffer.ByteBuf
 
 class CommandCompleteParser(val charset: Charset) : MessageParser {
 
-    override fun parseMessage(b: ByteBuf): ServerMessage {
+    override fun parseMessage(buffer: ByteBuf): ServerMessage {
 
-        val result = ByteBufferUtils.readCString(b, charset)
+        val result = ByteBufferUtils.readCString(buffer, charset)
 
         val indexOfRowCount = result.lastIndexOf(" ")
 

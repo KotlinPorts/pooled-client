@@ -16,16 +16,14 @@
 
 package com.github.mauricio.async.db.postgresql.pool
 
+import com.github.elizarov.async.async
 import com.github.elizarov.async.suspendable
+import com.github.elizarov.async.withTimeout
 import com.github.mauricio.async.db.Configuration
 import com.github.mauricio.async.db.exceptions.ConnectionTimeoutedException
 import com.github.mauricio.async.db.pool.ObjectFactory
 import com.github.mauricio.async.db.postgresql.PostgreSQLConnection
 import java.nio.channels.ClosedChannelException
-import scala.concurrent.Await
-import scala.concurrent.duration._
-import scala.language.postfixOps
-import scala.concurrent.ExecutionContext
 import com.github.mauricio.async.db.util.ExecutorServiceUtils
 import com.github.mauricio.async.db.util.NettyUtils
 import io.netty.channel.EventLoopGroup
@@ -40,76 +38,70 @@ import kotlin.coroutines.ContinuationDispatcher
  * @param configuration
  */
 
-class PostgreSQLConnectionFactory( 
-    val configuration : Configuration, 
-    val group : EventLoopGroup = NettyUtils.DefaultEventLoopGroup,
-    val executionContext : ContinuationDispatcher = ExecutorServiceUtils.CachedExecutionContext ) : ObjectFactory<PostgreSQLConnection> {
+class PostgreSQLConnectionFactory(
+        val configuration: Configuration,
+        val group: EventLoopGroup = NettyUtils.DefaultEventLoopGroup,
+        val executionContext: ContinuationDispatcher = ExecutorServiceUtils.CachedExecutionContext) : ObjectFactory<PostgreSQLConnection> {
 
-  companion object: KLogging()
+    companion object : KLogging()
 
-  override suspend fun create(): PostgreSQLConnection = suspendable(executionContext) {
-    val connection = PostgreSQLConnection(configuration, group = group, executionContext = executionContext)
-    ExecutorServiceUtils.withTimeout(configuration.connectTimeout) {
-      connection.connect()
-    }
-    connection
-  }
-
-  override fun destroy(item: PostgreSQLConnection) {
-    item.disconnect()
-  }
-
-  /**
-   *
-   * Validates by checking if the connection is still connected to the database or not.
-   *
-   * @param item an object produced by this pool
-   * @return
-   */
-
-  override fun validate( item : PostgreSQLConnection ) : Either<PostgreSQLConnection, Throwable> =
-    try {
-      if ( item.isTimeouted ) {
-        throw ConnectionTimeoutedException(item)
-      }
-      if ( !item.isConnected || item.hasRecentError ) {
-        throw ClosedChannelException()
-      } 
-      item.validateIfItIsReadyForQuery("Trying to give back a connection that is not ready for query")
-      Either.Left(item)
-    } catch (e: Throwable) {
-      Either.Right(e)
-    }
-
-  /**
-   *
-   * Tests whether we can still send a **SELECT 0** statement to the database.
-   *
-   * @param item an object produced by this pool
-   * @return
-   */
-
-  override fun test(item: PostgreSQLConnection): Either<PostgreSQLConnection, Throwable> {
-    val result : Try[PostgreSQLConnection] = Try({
-      Await.result( item.sendQuery("SELECT 0"), configuration.testTimeout )
-      item
-    })
-
-    result match {
-      case Failure(e) => {
-        try {
-          if ( item.isConnected ) {
-            item.disconnect
-          }
-        } catch {
-          case e : Exception => log.error("Failed disconnecting object", e)
+    override suspend fun create(): PostgreSQLConnection = suspendable(executionContext) {
+        val connection = PostgreSQLConnection(configuration, group = group, executionContext = executionContext)
+        withTimeout(group, configuration.connectTimeout) {
+            connection.connect()
         }
-        result
-      }
-      case Success(i) => {
-        result
-      }
+        connection
     }
-  }
+
+    override fun destroy(item: PostgreSQLConnection) {
+        async(executionContext) {
+            item.disconnect()
+        }
+    }
+
+    /**
+     *
+     * Validates by checking if the connection is still connected to the database or not.
+     *
+     * @param item an object produced by this pool
+     * @return
+     */
+
+    override suspend fun validate(item: PostgreSQLConnection): PostgreSQLConnection {
+        if (item.isTimeouted) {
+            throw ConnectionTimeoutedException(item)
+        }
+        if (!item.isConnected || item.hasRecentError()) {
+            throw ClosedChannelException()
+        }
+        item.validateIfItIsReadyForQuery("Trying to give back a connection that is not ready for query")
+        return item
+    }
+
+    /**
+     *
+     * Tests whether we can still send a **SELECT 0** statement to the database.
+     *
+     * @param item an object produced by this pool
+     * @return
+     */
+
+    override suspend fun test(item: PostgreSQLConnection) = suspendable(executionContext) {
+        try {
+            withTimeout(group, configuration.connectTimeout) {
+                item.sendQuery("SELECT 0")
+            }
+            item
+        } catch (e: Throwable) {
+            try {
+                if (item.isConnected) {
+                    item.disconnect()
+                }
+            } catch (e: Throwable) {
+                logger.error("Failed disconnecting object", e)
+            }
+            throw e
+        }
+    }
 
 }

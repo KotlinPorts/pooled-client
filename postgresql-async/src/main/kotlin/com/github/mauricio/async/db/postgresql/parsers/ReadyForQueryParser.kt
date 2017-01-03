@@ -22,7 +22,7 @@ import io.netty.buffer.ByteBuf
 
 object ReadyForQueryParser : MessageParser {
 
-    override fun parseMessage(b: ByteBuf): ServerMessage =
-            ReadyForQueryMessage(b.readByte().toChar())
+    override fun parseMessage(buffer: ByteBuf): ServerMessage =
+            ReadyForQueryMessage(buffer.readByte().toChar())
 
 }

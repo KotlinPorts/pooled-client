@@ -63,20 +63,20 @@ The format code being used for the field. Currently will be zero (text) or one (
 
 class RowDescriptionParser(val charset: Charset) : MessageParser {
 
-    override fun parseMessage(b: ByteBuf): ServerMessage {
+    override fun parseMessage(buffer: ByteBuf): ServerMessage {
 
-        val columnsCount = b.readShort().toInt()
+        val columnsCount = buffer.readShort().toInt()
         val columns = Array<PostgreSQLColumnData>(columnsCount,
                 {
                     index ->
                     PostgreSQLColumnData(
-                            name = readCString(b, charset),
-                            tableObjectId = b.readInt(),
-                            columnNumber = b.readShort().toInt(),
-                            dataType = b.readInt(),
-                            dataTypeSize = b.readShort().toLong(),
-                            dataTypeModifier = b.readInt(),
-                            fieldFormat = b.readShort().toInt()
+                            name = readCString(buffer, charset),
+                            tableObjectId = buffer.readInt(),
+                            columnNumber = buffer.readShort().toInt(),
+                            dataType = buffer.readInt(),
+                            dataTypeSize = buffer.readShort().toLong(),
+                            dataTypeModifier = buffer.readInt(),
+                            fieldFormat = buffer.readShort().toInt()
                     )
                 })
 

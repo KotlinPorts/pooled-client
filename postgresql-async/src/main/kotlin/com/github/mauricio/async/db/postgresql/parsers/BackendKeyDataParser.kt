@@ -22,7 +22,7 @@ import io.netty.buffer.ByteBuf
 
 object BackendKeyDataParser : MessageParser {
 
-    override fun parseMessage(b: ByteBuf): ServerMessage =
-            ProcessData(b.readInt(), b.readInt())
+    override fun parseMessage(buffer: ByteBuf): ServerMessage =
+            ProcessData(buffer.readInt(), buffer.readInt())
 
 }

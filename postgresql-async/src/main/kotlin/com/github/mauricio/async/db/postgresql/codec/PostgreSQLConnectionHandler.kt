@@ -255,7 +255,7 @@ class PostgreSQLConnectionHandler
     override fun exceptionCaught(ctx: ChannelHandlerContext, cause: Throwable) =
             // unwrap CodecException if needed
             when (cause) {
-                is CodecException -> connectionDelegate.onError(cause.cause)
+                is CodecException -> connectionDelegate.onError(cause.cause!!)
                 else -> connectionDelegate.onError(cause)
             }
 

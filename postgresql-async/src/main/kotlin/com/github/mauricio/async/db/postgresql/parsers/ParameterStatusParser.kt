@@ -24,7 +24,7 @@ import io.netty.buffer.ByteBuf
 
 class ParameterStatusParser(val charset: Charset) : MessageParser {
 
-    override fun parseMessage(b: ByteBuf): ServerMessage =
-            ParameterStatusMessage(readCString(b, charset), readCString(b, charset))
+    override fun parseMessage(buffer: ByteBuf): ServerMessage =
+            ParameterStatusMessage(readCString(buffer, charset), readCString(buffer, charset))
 
 }

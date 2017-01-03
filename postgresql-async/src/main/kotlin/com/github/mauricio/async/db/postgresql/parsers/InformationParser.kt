@@ -23,17 +23,17 @@ import io.netty.buffer.ByteBuf
 
 abstract class InformationParser(val charset: Charset) : MessageParser {
 
-    override fun parseMessage(b: ByteBuf): ServerMessage {
+    override fun parseMessage(buffer: ByteBuf): ServerMessage {
 
         val fields = mutableMapOf<Char, String>()
 
-        while (b.isReadable()) {
-            val kind = b.readByte()
+        while (buffer.isReadable()) {
+            val kind = buffer.readByte()
 
             if (kind != 0.toByte()) {
                 fields.put(
                         kind.toChar(),
-                        ByteBufferUtils.readCString(b, charset)
+                        ByteBufferUtils.readCString(buffer, charset)
                 )
             }
 

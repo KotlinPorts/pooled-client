@@ -27,10 +27,10 @@ import java.nio.charset.Charset
 
 class ArrayDecoder(private val decoder: ColumnDecoder) : ColumnDecoder {
 
-    override fun decode(kind: ColumnData, buffer: ByteBuf, charset: Charset): List<Any?> {
+    override fun decode(kind: ColumnData, value: ByteBuf, charset: Charset): List<Any?> {
 
-        val bytes = ByteArray(buffer.readableBytes())
-        buffer.readBytes(bytes)
+        val bytes = ByteArray(value.readableBytes())
+        value.readBytes(bytes)
         val value = String(bytes, charset)
 
         var stack = mutableListOf<MutableList<Any?>>()

@@ -34,16 +34,16 @@ object AuthenticationStartupParser : MessageParser {
     val AuthenticationGSSContinue = 8
     val AuthenticationSSPI = 9
 
-    override fun parseMessage(b: ByteBuf): ServerMessage {
+    override fun parseMessage(buffer: ByteBuf): ServerMessage {
 
-        val authenticationType = b.readInt()
+        val authenticationType = buffer.readInt()
 
         return when (authenticationType) {
             AuthenticationOk -> AuthenticationOkMessage.Instance
             AuthenticationCleartextPassword -> AuthenticationChallengeCleartextMessage.Instance
             AuthenticationMD5Password -> {
-                val bytes = ByteArray(b.readableBytes())
-                b.readBytes(bytes)
+                val bytes = ByteArray(buffer.readableBytes())
+                buffer.readBytes(bytes)
                 AuthenticationChallengeMD5(bytes)
             }
             else -> {
