@@ -22,7 +22,7 @@ open class PreparedStatementMessage(
         val statementId: Int,
         kind: Int,
         val query: String,
-        val values: List<Any>,
+        val values: List<Any?>,
         encoderRegistry: ColumnEncoderRegistry
 )
     : ClientMessage(kind) {

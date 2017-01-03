@@ -18,34 +18,38 @@ package com.github.mauricio.async.db.postgresql
 
 import com.github.mauricio.async.db.postgresql.messages.backend.PostgreSQLColumnData
 
-class PreparedStatementHolder(val query : String, val statementId : Int ) {
+class PreparedStatementHolder(val query: String, val statementId: Int) {
 
-  val (realQuery, paramsCount) = {
-    val result = new StringBuilder(query.length+16)
-    var offset = 0
-    var params = 0
-    while (offset < query.length) {
-      val next = query.indexOf('?', offset)
-      if (next == -1) {
-        result ++= query.substring(offset)
-        offset = query.length
-      } else {
-        result ++= query.substring(offset, next)
-        offset = next + 1
-        if (offset < query.length && query(offset) == '?') {
-          result += '?'
-          offset += 1
-        } else {
-          result += '$'
-          params += 1
-          result ++= params.toString
+    val realQuery: String
+    val paramsCount: Int
+
+    init {
+        val result = StringBuilder(query.length + 16)
+        var offset = 0
+        var params = 0
+        while (offset < query.length) {
+            val next = query.indexOf('?', offset)
+            if (next == -1) {
+                result.append(query.substring(offset))
+                offset = query.length
+            } else {
+                result.append(query.substring(offset, next))
+                offset = next + 1
+                if (offset < query.length && query[offset] == '?') {
+                    result.append('?')
+                    offset += 1
+                } else {
+                    result.append('$')
+                    params += 1
+                    result.append(params.toString())
+                }
+            }
         }
-      }
+        realQuery = result.toString()
+        paramsCount = params
     }
-    (result.toString, params)
-  }
 
-  var prepared : Boolean = false
-  var columnDatas : Array[PostgreSQLColumnData] = Array.empty
+    var prepared: Boolean = false
+    var columnDatas = listOf<PostgreSQLColumnData>()
 
 }
