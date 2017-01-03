@@ -24,7 +24,7 @@ interface PostgreSQLConnectionDelegate {
     fun onCommandComplete(message: CommandCompleteMessage)
     fun onDataRow(message: DataRowMessage)
     fun onError(message: ErrorMessage)
-    fun onError(throwable: Throwable)
+    fun onError(exception: Throwable)
     fun onParameterStatus(message: ParameterStatusMessage)
     fun onReadyForQuery()
     fun onRowDescription(message: RowDescriptionMessage)

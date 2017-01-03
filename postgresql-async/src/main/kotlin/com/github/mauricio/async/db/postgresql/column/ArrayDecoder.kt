@@ -27,10 +27,10 @@ import java.nio.charset.Charset
 
 class ArrayDecoder(private val decoder: ColumnDecoder) : ColumnDecoder {
 
-    override fun decode(kind: ColumnData, value: ByteBuf, charset: Charset): List<Any?> {
+    override fun decode(kind: ColumnData, buffer: ByteBuf, charset: Charset): List<Any?> {
 
-        val bytes = ByteArray(value.readableBytes())
-        value.readBytes(bytes)
+        val bytes = ByteArray(buffer.readableBytes())
+        buffer.readBytes(bytes)
         val value = String(bytes, charset)
 
         var stack = mutableListOf<MutableList<Any?>>()
@@ -43,12 +43,11 @@ class ArrayDecoder(private val decoder: ColumnDecoder) : ColumnDecoder {
             }
 
             override fun elementFound(element: String) {
-                val result = if (decoder.supportsStringDecoding()) {
+                current!! += if (decoder.supportsStringDecoding()) {
                     decoder.decode(element)
                 } else {
                     decoder.decode(kind, Unpooled.wrappedBuffer(element.toByteArray(charset)), charset)
                 }
-                current!! += result
             }
 
             override fun nullElementFound() {
