@@ -78,9 +78,13 @@ class PostgreSQLConnectionHandler
     suspend fun connect(): PostgreSQLConnectionHandler = suspendCoroutine {
         cont ->
         connectionContinuation = cont
-        this.bootstrap.group(this.group)
-        this.bootstrap.channel(NioSocketChannel::class.java)
-        this.bootstrap.handler(object : ChannelInitializer<Channel>() {
+        bootstrap.group(this.group)
+        try {
+            bootstrap.channel(NioSocketChannel::class.java)
+        } catch (e: Throwable) {
+            println(e)
+        }
+        bootstrap.handler(object : ChannelInitializer<Channel>() {
 
             override fun initChannel(ch: Channel) {
                 ch.pipeline().addLast(
@@ -91,10 +95,10 @@ class PostgreSQLConnectionHandler
 
         })
 
-        this.bootstrap.option<Boolean>(ChannelOption.SO_KEEPALIVE, true)
-        this.bootstrap.option(ChannelOption.ALLOCATOR, configuration.allocator)
+        bootstrap.option<Boolean>(ChannelOption.SO_KEEPALIVE, true)
+        bootstrap.option(ChannelOption.ALLOCATOR, configuration.allocator)
 
-        this.bootstrap.connect(InetSocketAddress(configuration.host, configuration.port)).addListener {
+        bootstrap.connect(InetSocketAddress(configuration.host, configuration.port)).addListener {
             channelFuture ->
             if (!channelFuture.isSuccess) {
                 connectionContinuation?.resumeWithException(channelFuture.cause())

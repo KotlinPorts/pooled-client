@@ -15,7 +15,7 @@ data class SSLConfiguration(val mode: Mode = Mode.Disable, val rootCert: java.io
     constructor(properties: Map<String, String>) :
             this(
                     modeByValue(properties.getOrDefault("sslmode", "disable")),
-                    properties.get("sslrootcert").let { File(it) }
+                    properties.get("sslrootcert").let { if (it!=null) File(it) else null }
             )
 
     companion object SSLConfiguration {
