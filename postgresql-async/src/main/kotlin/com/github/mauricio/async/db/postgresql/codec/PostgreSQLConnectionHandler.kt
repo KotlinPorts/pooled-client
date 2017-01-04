@@ -79,11 +79,7 @@ class PostgreSQLConnectionHandler
         cont ->
         connectionContinuation = cont
         bootstrap.group(this.group)
-        try {
-            bootstrap.channel(NioSocketChannel::class.java)
-        } catch (e: Throwable) {
-            println(e)
-        }
+        bootstrap.channel(NioSocketChannel::class.java)
         bootstrap.handler(object : ChannelInitializer<Channel>() {
 
             override fun initChannel(ch: Channel) {
