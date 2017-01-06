@@ -22,10 +22,10 @@ import com.github.mauricio.async.db.general.ColumnData
 
 interface ColumnDecoder {
 
-    fun decode(kind: ColumnData, buffer: ByteBuf, charset: Charset): Any? = {
+    fun decode(kind: ColumnData, buffer: ByteBuf, charset: Charset): Any? {
         val bytes = ByteArray(buffer.readableBytes())
         buffer.readBytes(bytes)
-        decode(String(bytes, charset))
+        return decode(String(bytes, charset))
     }
 
     fun decode(value: String): Any?

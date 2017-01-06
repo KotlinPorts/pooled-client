@@ -45,6 +45,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 
 import com.github.mauricio.async.db.postgresql.util.URLParser
 import mu.KLogging
+import java.time.Duration
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.ContinuationDispatcher
@@ -194,8 +195,9 @@ class PostgreSQLConnection
     }
 
     override fun onReadyForQuery() {
-        if (!!connectionFutureFlag.get()) {
+        if (!connectionFutureFlag.get()) {
             try {
+                connectionFutureFlag.set(true)
                 connectionFuture!!.resume(this)
             } catch (e: Throwable) {
             }
@@ -362,4 +364,15 @@ class PostgreSQLConnection
 
     override fun toString(): String =
             "${this.javaClass.getSimpleName()}{counter=${this.currentCount}}"
+
+    //1.1 errors
+
+    override suspend fun <A> inTransaction(dispatcher: ContinuationDispatcher?,
+                                           f: suspend (conn: Connection) -> A) = super.inTransaction(dispatcher, f)
+
+    override suspend fun <T> addTimeout(duration: Duration?, block: (Continuation<T>) -> Unit)
+            = super.addTimeout(duration, block)
+
+    override suspend fun <T> addTimeout(durationMillis: Long?, block: (Continuation<T>) -> Unit)
+            = super.addTimeout(durationMillis, block)
 }

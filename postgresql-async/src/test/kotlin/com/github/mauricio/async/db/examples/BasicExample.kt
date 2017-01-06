@@ -29,7 +29,7 @@ import java.time.Duration
 
 fun main(args: Array<String>) {
 
-    val configuration = URLParser.parse("jdbc:postgresql://localhost:5432/my_database?username=postgres&password=postgres")
+    val configuration = URLParser.parse("jdbc:postgresql://localhost:5432/postgres?username=postgres&password=postgres")
     val connection: Connection = PostgreSQLConnection(configuration)
 
     val TL: Duration? = null; //Duration.ofSeconds(5)

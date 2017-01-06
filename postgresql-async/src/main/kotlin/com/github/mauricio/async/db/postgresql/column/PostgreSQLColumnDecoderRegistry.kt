@@ -47,9 +47,8 @@ class PostgreSQLColumnDecoderRegistry(charset: Charset = CharsetUtil.UTF_8) : Co
     private val uuidArrayDecoder = ArrayDecoder(UUIDEncoderDecoder)
     private val inetAddressArrayDecoder = ArrayDecoder(InetAddressEncoderDecoder)
 
-    override fun decode(kind: ColumnData, value: ByteBuf, charset: Charset): Any = {
+    override fun decode(kind: ColumnData, value: ByteBuf, charset: Charset): Any? =
         decoderFor(kind.dataType).decode(kind, value, charset)
-    }
 
     fun decoderFor(kind: Int): ColumnDecoder =
             when (kind) {
