@@ -1,6 +1,5 @@
 package com.github.kotlinports.pooled.core
 
-import kotlinx.coroutines.experimental.launch
 import mu.KLogging
 import java.util.*
 import java.util.concurrent.atomic.AtomicLong
@@ -19,14 +18,13 @@ open class SingleThreadedAsyncObjectPool<T>(
     private var poolables = listOf<PoolableHolder<T>>()
     private val checkouts = ArrayList<T>(configuration.maxObjects)
     private val waitQueue: Queue<Continuation<T>> = LinkedList<Continuation<T>>()
-    private val timer = Timer("async-object-pool-timer-" + Counter.incrementAndGet(), true)
+    private val timer: Long
 
     init {
-        timer.scheduleAtFixedRate(object : TimerTask() {
-            override fun run() {
-                launch(mainPool.cc) { testObjects() }
-            }
-        }, configuration.validationInterval, configuration.validationInterval)
+        timer = executionContext.setTimer("async-object-pool-timer-" + Counter.incrementAndGet(),
+                configuration.validationInterval, true) {
+            testObjects()
+        }
     }
 
     private var closed = false
@@ -43,7 +41,9 @@ open class SingleThreadedAsyncObjectPool<T>(
         if (this.closed) {
             cont.resumeWithException(PoolAlreadyTerminatedException())
         }
-        checkout(cont)
+        executionContext.launch {
+            checkout(cont)
+        }
     }
 
     /**
@@ -55,12 +55,11 @@ open class SingleThreadedAsyncObjectPool<T>(
      * @return
      */
 
-    override suspend fun giveBack(item: T) = mainPool.act<Unit>
-    {
+    override suspend fun giveBack(item: T): Unit = executionContext.run {
         // Ensure it came from this pool
-        val idx = this.checkouts.indexOf(item)
+        val idx = checkouts.indexOf(item)
         if (idx >= 0) {
-            this.checkouts.removeAt(idx)
+            checkouts.removeAt(idx)
             try {
                 factory.validate(item)
                 addBack(item)
@@ -70,7 +69,7 @@ open class SingleThreadedAsyncObjectPool<T>(
             }
         } else {
             // It's already a failure but lets doublecheck why
-            val isFromOurPool = this.poolables.find({ item == it.item }) != null
+            val isFromOurPool = poolables.find({ item == it.item }) != null
 
             if (isFromOurPool) {
                 throw IllegalStateException("This item has already been returned")
@@ -82,21 +81,13 @@ open class SingleThreadedAsyncObjectPool<T>(
 
     fun isFull(): Boolean = poolables.isEmpty() && checkouts.size == configuration.maxObjects
 
-    override suspend fun close() = run {
-        try {
-            mainPool.act<Unit> {
-                if (!closed) {
-                    timer.cancel()
-                    mainPool.shutdown()
-                    closed = true
-                    (poolables.map({ it.item }) + checkouts)
-                            .forEach({ factory.destroy(it) })
-                }
-            }
-        } catch (e: RejectedExecutionException) {
-            return@run this@SingleThreadedAsyncObjectPool
+    override suspend fun close(): Unit = run {
+        if (!closed) {
+            executionContext.clearTimer(timer)
+            closed = true
+            (poolables.map({ it.item }) + checkouts)
+                    .forEach({ factory.destroy(it) })
         }
-        this@SingleThreadedAsyncObjectPool
     }
 
     fun availables(): Iterable<T> = this.poolables.map { it.item }
@@ -115,15 +106,12 @@ open class SingleThreadedAsyncObjectPool<T>(
      * @param promise
      */
 
-    private suspend fun addBack(item: T) = run<AsyncObjectPool<T>>
-    {
+    private suspend fun addBack(item: T): Unit = run {
         poolables += PoolableHolder<T>(item)
 
         if (waitQueue.isNotEmpty()) {
             checkout(waitQueue.poll())
         }
-
-        this@SingleThreadedAsyncObjectPool
     }
 
     /**
@@ -145,18 +133,13 @@ open class SingleThreadedAsyncObjectPool<T>(
     }
 
     /**
-     * popelyshev:
-     *
-     * We assume that all methods that are calle from the worker
-     * will call this method, that's why it acts like a dispatcher
+     * We assume that all methods that are called from the worker
      */
-    private fun checkout(cont: Continuation<T>) {
-        mainPool.action {
-            if (this.isFull()) {
-                this.enqueuePromise(cont)
-            } else {
-                this.createOrReturnItem(cont)
-            }
+    private suspend fun checkout(cont: Continuation<T>) {
+        if (this.isFull()) {
+            this.enqueuePromise(cont)
+        } else {
+            this.createOrReturnItem(cont)
         }
     }
 
@@ -168,16 +151,14 @@ open class SingleThreadedAsyncObjectPool<T>(
      * @param promise
      */
 
-    private fun createOrReturnItem(cont: Continuation<T>) {
+    private suspend fun createOrReturnItem(cont: Continuation<T>) {
         if (poolables.isEmpty()) {
-            mainPool.action {
-                try {
-                    val item = factory.create()
-                    this.checkouts += item
-                    cont.resume(item)
-                } catch (e: Throwable) {
-                    cont.resumeWithException(e)
-                }
+            try {
+                val item = factory.create()
+                this.checkouts += item
+                cont.resume(item)
+            } catch (e: Throwable) {
+                cont.resumeWithException(e)
             }
         } else {
             val h = poolables[0]
@@ -188,8 +169,13 @@ open class SingleThreadedAsyncObjectPool<T>(
         }
     }
 
+    /**
+     * I really don't know what to do here, may be run it blocking?
+     */
     protected fun finalize() {
-        launch(mainPool.cc) { close() }
+        if (!closed) {
+            executionContext.launch { close() }
+        }
     }
 
     /**
@@ -198,9 +184,10 @@ open class SingleThreadedAsyncObjectPool<T>(
      * you're holding onto network connections since you can "ping" the destination
      * to keep the connection alive.
      *
+     * always runs in executionContext
      */
 
-    private suspend fun testObjects() = mainPool.act {
+    private suspend fun testObjects() {
         val removals = mutableListOf<PoolableHolder<T>>()
         this.poolables.forEach {
             poolable ->
