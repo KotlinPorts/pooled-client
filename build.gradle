@@ -1,26 +1,28 @@
-group 'com.github.mauricio.kotlin'
+group 'com.kotlinports.pooled'
 version '0.1-SNAPSHOT'
 
 buildscript {
-    ext.kotlin_version = '1.1.0-dev-5744'
+    ext.kotlin_version = '1.1.0-beta-17'
     repositories {
         mavenCentral()
         maven { url 'https://dl.bintray.com/kotlin/kotlin-dev' }
+        maven {
+            url 'http://repository.jetbrains.com/all'
+        }
     }
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath 'org.junit.platform:junit-platform-gradle-plugin:1.0.0-M3'
     }
 }
 
 subprojects {
 	repositories {
-        mavenCentral()
-        maven { url 'https://dl.bintray.com/kotlin/kotlin-dev' }
-        maven {
-            name 'bintray'
-            url 'http://jcenter.bintray.com'
-        }
-    }
+		mavenCentral()
+		maven { url 'https://dl.bintray.com/kotlin/kotlin-dev' }
+		maven { url 'http://dl.bintray.com/kotlin/kotlin-eap-1.1' }
+		maven { url 'http://jcenter.bintray.com' }
+	}
 	
     apply plugin: 'java'
 	apply plugin: 'kotlin'
@@ -30,11 +32,24 @@ subprojects {
     dependencies {
         compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
         compile 'io.github.microutils:kotlin-logging:1.4'
-        testCompile 'org.slf4j:slf4j-jdk14:1.7.21'
+        compile 'org.jetbrains.kotlinx:kotlinx-coroutines-core:0.3-beta'
+        testCompile 'org.jetbrains.spek:spek-api:1.1.0-beta2'
+        testRuntime 'org.slf4j:slf4j-jdk14:1.7.21'
+        testRuntime 'org.jetbrains.spek:spek-junit-platform-engine:1.1.0-beta2'
     }
 
     jar {
         manifest.attributes provider: 'gradle'
+    }
+
+    apply plugin: 'org.junit.platform.gradle.plugin'
+
+    junitPlatform {
+        filters {
+            engines {
+                include 'spek'
+            }
+        }
     }
 }
 
