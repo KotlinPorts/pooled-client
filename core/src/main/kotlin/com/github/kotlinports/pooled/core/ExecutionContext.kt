@@ -1,6 +1,15 @@
 package com.github.kotlinports.pooled.core
 
+import java.util.concurrent.TimeUnit
 import kotlin.coroutines.CoroutineContext
+
+interface Deferred<out T> {
+    /**
+     * if it gives CancellationException, then it came from above,
+     * subroutine will be executed anyway
+     */
+    suspend fun await(): T
+}
 
 /**
  * Allows to start
@@ -12,24 +21,26 @@ interface ExecutionContext {
     val ktContext: CoroutineContext
 
     /**
+     * run suspend block
+     */
+    suspend fun run(block: suspend () -> Unit)
+
+    /**
      * run single block in this context
      */
     fun runTask(block: () -> Unit)
 
     /**
      * run suspend block, use the ktContext to test the stuff
+     * whitewash for Cancellable coroutine context key
      */
-    suspend fun <T> runTask(block: suspend () -> Unit): T
-
-    /**
-     * run single suspend block in this context, the block is already safe
-     */
-    fun launch(block: suspend () -> Unit)
+    fun <T> defer(block: suspend () -> T): Deferred<T>
 
     /**
      * sets timer on specific context
+     * @param delay milliseconds for delay
      */
-    fun setTimer(name: String, delay: Long, periodic: Boolean, handler: suspend (timerId: Long) -> Unit): Long
+    fun setTimer(name: String, delay: Long, handler: suspend (timerId: Long) -> Unit): Long
 
     /**
      * clears timer

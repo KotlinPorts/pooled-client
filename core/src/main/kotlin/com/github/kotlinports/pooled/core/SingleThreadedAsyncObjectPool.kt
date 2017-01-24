@@ -2,6 +2,7 @@ package com.github.kotlinports.pooled.core
 
 import mu.KLogging
 import java.util.*
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.suspendCoroutine
@@ -22,7 +23,7 @@ open class SingleThreadedAsyncObjectPool<T>(
 
     init {
         timer = executionContext.setTimer("async-object-pool-timer-" + Counter.incrementAndGet(),
-                configuration.validationInterval, true) {
+                configuration.validationInterval) {
             testObjects()
         }
     }
@@ -36,14 +37,14 @@ open class SingleThreadedAsyncObjectPool<T>(
      * @return
      */
 
-    override suspend fun take(): T = suspendCoroutine {
-        cont ->
+    override suspend fun take(): T {
         if (this.closed) {
-            cont.resumeWithException(PoolAlreadyTerminatedException())
+            PoolAlreadyTerminatedException()
         }
-        executionContext.launch {
-            checkout(cont)
-        }
+
+        return executionContext.defer {
+            checkout()
+        }.await()
     }
 
     /**
@@ -110,7 +111,7 @@ open class SingleThreadedAsyncObjectPool<T>(
         poolables += PoolableHolder<T>(item)
 
         if (waitQueue.isNotEmpty()) {
-            checkout(waitQueue.poll())
+            waitQueue.poll().resume(createOrReturnItem())
         }
     }
 
@@ -122,26 +123,26 @@ open class SingleThreadedAsyncObjectPool<T>(
      * @param promise
      */
 
-    private fun enqueuePromise(cont: Continuation<T>) {
+    private suspend fun enqueuePromise(): T {
         if (this.waitQueue.size >= configuration.maxQueueSize) {
-            val exception = PoolExhaustedException("There are no objects available and the waitQueue is full")
-            exception.fillInStackTrace()
-            cont.resumeWithException(exception)
+            throw PoolExhaustedException("There are no objects available and the waitQueue is full")
         } else {
-            this.waitQueue += cont
+            return suspendCoroutine {
+                cont ->
+                this.waitQueue += cont
+            }
         }
     }
 
     /**
      * We assume that all methods that are called from the worker
      */
-    private suspend fun checkout(cont: Continuation<T>) {
-        if (this.isFull()) {
-            this.enqueuePromise(cont)
-        } else {
-            this.createOrReturnItem(cont)
-        }
-    }
+    private suspend fun checkout(): T =
+            if (isFull()) {
+                enqueuePromise()
+            } else {
+                createOrReturnItem()
+            }
 
     /**
      *
@@ -151,21 +152,17 @@ open class SingleThreadedAsyncObjectPool<T>(
      * @param promise
      */
 
-    private suspend fun createOrReturnItem(cont: Continuation<T>) {
+    private suspend fun createOrReturnItem(): T {
         if (poolables.isEmpty()) {
-            try {
-                val item = factory.create()
-                this.checkouts += item
-                cont.resume(item)
-            } catch (e: Throwable) {
-                cont.resumeWithException(e)
-            }
+            val item = factory.create()
+            this.checkouts += item
+            return item
         } else {
             val h = poolables[0]
             poolables = poolables.drop(1)
             val item = h.item
             this.checkouts += item
-            cont.resume(item)
+            return item
         }
     }
 
@@ -174,7 +171,7 @@ open class SingleThreadedAsyncObjectPool<T>(
      */
     protected fun finalize() {
         if (!closed) {
-            executionContext.launch { close() }
+            executionContext.defer { close() }
         }
     }
 

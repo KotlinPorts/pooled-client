@@ -8,15 +8,18 @@ import kotlin.coroutines.Continuation
 open class PartitionedAsyncObjectPool<T>(
         val factory: ObjectFactory<T>,
         val configuration: PoolConfiguration,
-        val numberOfPartitions: Int)
+        val executionService: ExecutionService)
     : AsyncObjectPool<T> {
 
-    //TODO: why is it a map? why not array?
-    private val pools = Array<Pair<Int, SingleThreadedAsyncObjectPool<T>>>(numberOfPartitions,
-    {
-        i ->
-        Pair(i, SingleThreadedAsyncObjectPool<T>(factory, partitionConfig()))
-    }).toMap()
+    private val threadList = executionService.open()
+
+    private var closed = false
+
+    private val numberOfPartitions: Int = threadList.size
+
+    private val pools = threadList.map {
+        SingleThreadedAsyncObjectPool<T>(factory, partitionConfig(), it)
+    }
 
     private val checkouts = ConcurrentHashMap<T, SingleThreadedAsyncObjectPool<T>>()
 
@@ -35,27 +38,27 @@ open class PartitionedAsyncObjectPool<T>(
     }
 
     override suspend fun close() {
-        pools.values.forEach { it.close() }
+        pools.forEach { it.close() }
+        executionService.close(threadList)
     }
 
-    fun availables(): Iterable<T> = pools.values.flatMap { it.availables() }
+    fun availables(): Iterable<T> = pools.flatMap { it.availables() }
 
-    fun inUse(): Iterable<T> = pools.values.flatMap { it.inUse() }
+    fun inUse(): Iterable<T> = pools.flatMap { it.inUse() }
 
-    fun queued(): Iterable<Continuation<T>> = pools.values.flatMap { it.queued() }
+    fun queued(): Iterable<Continuation<T>> = pools.flatMap { it.queued() }
 
-    protected fun isClosed() =
-        pools.values.find { !it.isClosed() } == null
+    protected fun isClosed() = closed
 
     private fun currentPool() =
-        pools[currentThreadAffinity()]!!
+            pools[currentThreadAffinity()]
 
     private fun currentThreadAffinity() =
-        (Thread.currentThread().id % numberOfPartitions).toInt()
+            (Thread.currentThread().id % numberOfPartitions).toInt()
 
     private fun partitionConfig() =
-        configuration.copy(
-            maxObjects = configuration.maxObjects / numberOfPartitions,
-            maxQueueSize = configuration.maxQueueSize / numberOfPartitions
-        )
+            configuration.copy(
+                    maxObjects = configuration.maxObjects / numberOfPartitions,
+                    maxQueueSize = configuration.maxQueueSize / numberOfPartitions
+            )
 }
